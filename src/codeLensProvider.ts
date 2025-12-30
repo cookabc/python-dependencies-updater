@@ -9,6 +9,12 @@ import { getLatestCompatible } from './versionService';
 import { getConfig } from './configuration';
 
 export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
+    private _onDidChangeCodeLenses: vscode.EventEmitter<void> = new vscode.EventEmitter<void>();
+    public readonly onDidChangeCodeLenses: vscode.Event<void> = this._onDidChangeCodeLenses.event;
+    
+    public refresh(): void {
+        this._onDidChangeCodeLenses.fire();
+    }
     async provideCodeLenses(
         document: vscode.TextDocument,
         token: vscode.CancellationToken

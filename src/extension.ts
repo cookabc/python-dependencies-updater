@@ -129,8 +129,8 @@ export function activate(context: vscode.ExtensionContext): void {
             }
             
             debounceTimer = setTimeout(() => {
-                // Trigger inlay hints refresh
-                vscode.commands.executeCommand('editor.action.inlayHints.refresh');
+                // Refresh CodeLens
+                codeLensProvider.refresh();
             }, DEBOUNCE_DELAY);
         }
     });
@@ -139,8 +139,8 @@ export function activate(context: vscode.ExtensionContext): void {
     
     // Handle configuration changes
     const configDisposable = onConfigChange(() => {
-        // Refresh hints when config changes
-        vscode.commands.executeCommand('editor.action.inlayHints.refresh');
+        // Refresh CodeLens when config changes
+        codeLensProvider.refresh();
     });
     
     context.subscriptions.push(configDisposable);
