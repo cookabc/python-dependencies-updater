@@ -27,9 +27,6 @@
     "manager",
     "upgrade"
   ],
-  "activationEvents": [
-    "onLanguage:pip-requirements"
-  ],
   "main": "./out/extension.js",
   "contributes": {
     "colors": [
