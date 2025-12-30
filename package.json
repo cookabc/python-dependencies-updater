@@ -28,6 +28,26 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "colors": [
+      {
+        "id": "pyDepsHint.upToDate",
+        "description": "Color for up-to-date packages",
+        "defaults": {
+          "dark": "#4CAF50",
+          "light": "#2E7D32",
+          "highContrast": "#00FF00"
+        }
+      },
+      {
+        "id": "pyDepsHint.updateAvailable", 
+        "description": "Color for packages with updates available",
+        "defaults": {
+          "dark": "#FF9800",
+          "light": "#F57C00",
+          "highContrast": "#FFFF00"
+        }
+      }
+    ],
     "commands": [
       {
         "command": "pyDepsHint.updateVersion",
@@ -36,6 +56,10 @@
       {
         "command": "pyDepsHint.updateAllVersions",
         "title": "%command.updateAllVersions%"
+      },
+      {
+        "command": "pyDepsHint.showUpToDate",
+        "title": "Show Up-to-date Status"
       }
     ],
     "configuration": {

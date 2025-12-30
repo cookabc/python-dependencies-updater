@@ -1,0 +1,29 @@
+/* CodeLens styling for py-deps-hint */
+
+/* Up-to-date packages - green color */
+.codicon-pass-filled {
+    color: #4CAF50 !important;
+}
+
+/* Update available packages - orange color */  
+.codicon-warning {
+    color: #FF9800 !important;
+}
+
+/* Dark theme overrides */
+.vscode-dark .codicon-pass-filled {
+    color: #81C784 !important;
+}
+
+.vscode-dark .codicon-warning {
+    color: #FFB74D !important;
+}
+
+/* High contrast theme overrides */
+.vscode-high-contrast .codicon-pass-filled {
+    color: #00FF00 !important;
+}
+
+.vscode-high-contrast .codicon-warning {
+    color: #FFFF00 !important;
+}

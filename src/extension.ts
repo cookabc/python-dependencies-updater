@@ -95,7 +95,15 @@ export function activate(context: vscode.ExtensionContext): void {
         }
     );
     
-    context.subscriptions.push(updateAllCommand);
+    // Register command for showing up-to-date status (no-op, just for styling)
+    const showUpToDateCommand = vscode.commands.registerCommand(
+        'pyDepsHint.showUpToDate',
+        (packageName: string, version: string) => {
+            // This is just for styling purposes, no action needed
+        }
+    );
+    
+    context.subscriptions.push(showUpToDateCommand);
     
     // Register CodeLens Provider for version information and updates
     const selector: vscode.DocumentSelector = {

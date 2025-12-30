@@ -58,17 +58,20 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
                 let codeLens: vscode.CodeLens;
                 
                 if (currentVersion === latestVersion) {
-                    // Up to date - show non-clickable status
+                    // Up to date - show with green check and muted text
                     codeLens = new vscode.CodeLens(range, {
-                        title: `✓ ${t('upToDate')} (${t('latest')}: ${latestVersion})`,
-                        command: ''
+                        title: `$(check-all) ${t('upToDate')}`,
+                        command: 'pyDepsHint.showUpToDate',
+                        arguments: [dep.packageName, latestVersion],
+                        tooltip: `${dep.packageName} ${latestVersion} is up to date`
                     });
                 } else {
-                    // Update available - show clickable update
+                    // Update available - show with bright arrow and version
                     codeLens = new vscode.CodeLens(range, {
-                        title: `↗ ${t('updateTo')} ${latestVersion}`,
+                        title: `$(arrow-circle-up) ${t('updateTo')} ${latestVersion}`,
                         command: 'pyDepsHint.updateVersion',
-                        arguments: [document, dep.line, dep.packageName, latestVersion]
+                        arguments: [document, dep.line, dep.packageName, latestVersion],
+                        tooltip: `Click to update ${dep.packageName} from ${currentVersion} to ${latestVersion}`
                     });
                 }
                 
