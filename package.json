@@ -1,13 +1,13 @@
 {
-  "name": "py-deps-hint",
-  "displayName": "Python Dependencies Hint",
-  "description": "Display latest compatible versions for Python dependencies in requirements.txt",
-  "version": "0.0.1",
-  "publisher": "py-deps-hint",
+  "name": "python-requirements-updater",
+  "displayName": "Python Requirements Updater",
+  "description": "Smart version management for Python requirements.txt files with one-click updates and breaking change detection",
+  "version": "1.0.0",
+  "publisher": "cookabc",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/py-deps-hint/py-deps-hint"
+    "url": "https://github.com/cookabc/python-requirements-updater"
   },
   "engines": {
     "vscode": "^1.85.0"
@@ -21,7 +21,11 @@
     "requirements",
     "pip",
     "dependencies",
-    "version"
+    "version",
+    "update",
+    "package",
+    "manager",
+    "upgrade"
   ],
   "activationEvents": [
     "onLanguage:pip-requirements"

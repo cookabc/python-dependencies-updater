@@ -1,6 +1,10 @@
-# py-deps-hint
+# Python Requirements Updater
 
-在 VS Code 中为 `requirements.txt` 文件显示 Python 依赖的最新兼容版本。
+Smart version management for Python requirements.txt files with one-click updates and breaking change detection.
+
+[![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/cookabc.python-requirements-updater)](https://marketplace.visualstudio.com/items?itemName=cookabc.python-requirements-updater)
+[![Visual Studio Marketplace Downloads](https://img.shields.io/visual-studio-marketplace/d/cookabc.python-requirements-updater)](https://marketplace.visualstudio.com/items?itemName=cookabc.python-requirements-updater)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## ✨ 功能特性
 
@@ -12,27 +16,39 @@
 - 🌍 **多语言支持** - 支持中文、英文、日文、韩文等多种语言
 - 💾 **智能缓存** - 减少网络请求，提升响应速度
 
-## 🚀 使用方法
+## 🚀 Installation
 
-1. 打开任意 `requirements.txt` 文件
-2. 插件会自动显示每个依赖的状态：
-   - `✓ 已是最新` - 包已是最新版本
-   - `↗ 更新到 X.X.X` - 有安全更新可用（点击更新）
-   - `⚠️ 更新到 X.X.X Major` - 有大版本更新（谨慎更新）
+1. Open VS Code
+2. Go to Extensions (Ctrl+Shift+X)
+3. Search for "Python Requirements Updater"
+4. Click Install
 
-### 批量更新
+Or install from command line:
+```bash
+code --install-extension cookabc.python-requirements-updater
+```
 
-- 点击状态栏的更新提示
-- 或使用命令面板：`Ctrl+Shift+P` → "Update All Packages"
-- 自动区分安全更新和风险更新，提供选择
+## 🚀 Usage
 
-## ⚙️ 配置选项
+1. Open any `requirements.txt` file
+2. The extension automatically shows status for each dependency:
+   - `✓ Up to date` - Package is already latest version
+   - `↗ Update to X.X.X` - Safe update available (click to update)
+   - `⚠️ Update to X.X.X Major` - Major version update (use caution)
 
-| 设置 | 默认值 | 说明 |
-|------|--------|------|
-| `pyDepsHint.enabled` | `true` | 启用/禁用插件 |
-| `pyDepsHint.showPrerelease` | `false` | 是否显示预发布版本 |
-| `pyDepsHint.cacheTTLMinutes` | `60` | 缓存有效期（分钟） |
+### Batch Updates
+
+- Click the status bar update notification
+- Or use Command Palette: `Ctrl+Shift+P` → "Update All Packages"
+- Automatically separates safe updates from risky major version updates
+
+## ⚙️ Configuration
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `pyDepsHint.enabled` | `true` | Enable/disable the extension |
+| `pyDepsHint.showPrerelease` | `false` | Include pre-release versions |
+| `pyDepsHint.cacheTTLMinutes` | `60` | Cache TTL in minutes |
 
 ## 🏗️ 项目结构
 

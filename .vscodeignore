@@ -11,3 +11,6 @@ vsc-extension-quickstart.md
 !out/**/*.js
 node_modules/**
 .kiro/**
+*.vsix
+.git/**
+.DS_Store
