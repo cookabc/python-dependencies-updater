@@ -1,7 +1,7 @@
 {
   "name": "python-requirements-updater",
   "displayName": "Python Requirements Updater",
-  "description": "Smart version management for Python requirements.txt files with one-click updates and breaking change detection",
+  "description": "Smart version management for Python requirements.txt and pyproject.toml files with one-click updates and breaking change detection",
   "version": "1.0.0",
   "publisher": "cookabc",
   "license": "MIT",
@@ -49,7 +49,7 @@
         }
       },
       {
-        "id": "pyDepsHint.updateAvailable", 
+        "id": "pyDepsHint.updateAvailable",
         "description": "Color for packages with updates available",
         "defaults": {
           "dark": "#FF9800",
@@ -95,8 +95,27 @@
     "languages": [
       {
         "id": "pip-requirements",
-        "aliases": ["pip requirements", "requirements.txt"],
-        "filenames": ["requirements.txt"],
+        "aliases": [
+          "pip requirements",
+          "requirements.txt"
+        ],
+        "filenames": [
+          "requirements.txt"
+        ],
+        "configuration": "./language-configuration.json"
+      },
+      {
+        "id": "toml",
+        "aliases": [
+          "pyproject.toml",
+          "TOML"
+        ],
+        "extensions": [
+          ".toml"
+        ],
+        "filenames": [
+          "pyproject.toml"
+        ],
         "configuration": "./language-configuration.json"
       }
     ]
@@ -110,10 +129,10 @@
     "lint": "eslint src --ext ts"
   },
   "devDependencies": {
+    "@types/chai": "^4.3.11",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.10.0",
     "@types/vscode": "^1.85.0",
-    "@types/chai": "^4.3.11",
     "@typescript-eslint/eslint-plugin": "^6.13.0",
     "@typescript-eslint/parser": "^6.13.0",
     "chai": "^4.3.10",
@@ -123,5 +142,7 @@
     "ts-node": "^10.9.2",
     "typescript": "^5.3.2"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@iarna/toml": "^2.2.5"
+  }
 }

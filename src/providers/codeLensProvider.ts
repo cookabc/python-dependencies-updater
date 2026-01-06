@@ -1,10 +1,10 @@
 /**
- * CodeLens Provider for requirements.txt
+ * CodeLens Provider for requirements.txt and pyproject.toml
  * Provides version information and clickable update links
  */
 
 import * as vscode from 'vscode';
-import { parseDocument } from '../core/parser';
+import { parseDocumentByFormat } from '../core/unifiedParser';
 import { getLatestCompatible } from './versionService';
 import { getConfig } from '../utils/configuration';
 import { analyzeVersionUpdate } from '../core/versionAnalyzer';
@@ -29,7 +29,7 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
         }
         
         const codeLenses: vscode.CodeLens[] = [];
-        const dependencies = parseDocument(document.getText());
+        const dependencies = parseDocumentByFormat(document);
         
         // Process dependencies in parallel
         const promises = dependencies.map(async dep => {

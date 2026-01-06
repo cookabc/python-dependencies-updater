@@ -7,15 +7,28 @@ import * as vscode from 'vscode';
 import { PyDepsCodeLensProvider } from './providers/codeLensProvider';
 import { onConfigChange, getConfig } from './utils/configuration';
 import { cacheManager } from './core/cache';
-import { parseDocument } from './core/parser';
+import { parseDocumentByFormat, isSupportedFormat } from './core/unifiedParser';
 import { getLatestCompatible } from './providers/versionService';
 import { analyzeVersionUpdate } from './core/versionAnalyzer';
 import { StatusBarManager } from './utils/statusBar';
 import { t } from './utils/i18n';
 
-// Debounce timer for file changes
+const DEBOUNCE_DELAY = 300;
 let debounceTimer: NodeJS.Timeout | undefined;
-const DEBOUNCE_DELAY = 300; // ms (Requirement 1.3)
+
+function buildVersionReplacement(lineText: string, newVersion: string, isTOML: boolean): string {
+    if (isTOML) {
+        if (lineText.includes('==')) return `==${newVersion}`;
+        if (lineText.includes('>=')) return `>=${newVersion}`;
+        if (lineText.includes('<=')) return `<=${newVersion}`;
+        if (lineText.includes('>')) return `>${newVersion}`;
+        if (lineText.includes('<')) return `<${newVersion}`;
+        if (lineText.includes('!=')) return `!=${newVersion}`;
+        if (lineText.includes('~=')) return `~=${newVersion}`;
+        return `==${newVersion}`;
+    }
+    return `==${newVersion}`;
+}
 
 export function activate(context: vscode.ExtensionContext): void {
     console.log('Python Requirements Updater is now active');
@@ -29,12 +42,15 @@ export function activate(context: vscode.ExtensionContext): void {
         'pyDepsHint.updateVersion',
         async (document: vscode.TextDocument, line: number, packageName: string, newVersion: string) => {
             const lineText = document.lineAt(line).text;
-            const currentVersionMatch = lineText.match(/==([^\s]+)/);
+            const isTOML = document.languageId === 'toml';
+
+            const versionPattern = isTOML ? /[=<>!~\^]+\s*([^\s,]+)/ : /==([^\s]+)/;
+            const currentVersionMatch = lineText.match(versionPattern);
             const currentVersion = currentVersionMatch ? currentVersionMatch[1] : '';
-            
+
             // Analyze update risk
             const analysis = analyzeVersionUpdate(currentVersion, newVersion);
-            
+
             // Show confirmation for major updates
             if (analysis.riskLevel === 'high') {
                 const choice = await vscode.window.showWarningMessage(
@@ -42,28 +58,26 @@ export function activate(context: vscode.ExtensionContext): void {
                     { modal: true },
                     'Update Anyway'
                 );
-                
+
                 if (choice !== 'Update Anyway') {
                     return;
                 }
             }
-            
+
             const edit = new vscode.WorkspaceEdit();
-            
-            // Find the version part and replace it
-            const versionRegex = /==[\d\w\.\-\+]+/;
+            const versionRegex = isTOML ? /[=<>!~\^]+\s*[\d\w\.\-\+]+/ : /==[\d\w\.\-\+]+/;
             const match = lineText.match(versionRegex);
-            
+
             if (match) {
-                const range = new vscode.Range(
-                    line,
-                    match.index!,
-                    line,
-                    match.index! + match[0].length
-                );
-                edit.replace(document.uri, range, `==${newVersion}`);
+                const versionPart = match[0];
+                const startIndex = match.index!;
+                const endIndex = startIndex + versionPart.length;
+
+                const replacement = buildVersionReplacement(versionPart, newVersion, isTOML);
+                const range = new vscode.Range(line, startIndex, line, endIndex);
+                edit.replace(document.uri, range, replacement);
                 await vscode.workspace.applyEdit(edit);
-                
+
                 vscode.window.showInformationMessage(
                     `${t('updated')} ${packageName} ${t('updateTo')} ${newVersion}`
                 );
@@ -76,13 +90,13 @@ export function activate(context: vscode.ExtensionContext): void {
         'pyDepsHint.updateAllVersions',
         async () => {
             const editor = vscode.window.activeTextEditor;
-            if (!editor || editor.document.languageId !== 'pip-requirements') {
+            if (!editor || !isSupportedFormat(editor.document.languageId)) {
                 vscode.window.showErrorMessage(t('openRequirements'));
                 return;
             }
-            
+
             const document = editor.document;
-            const deps = parseDocument(document.getText());
+            const deps = parseDocumentByFormat(document);
             
             const edit = new vscode.WorkspaceEdit();
             let safeUpdates = 0;
@@ -103,19 +117,19 @@ export function activate(context: vscode.ExtensionContext): void {
                                 // Risky update - collect for confirmation
                                 riskyUpdates.push({ dep, currentVersion, newVersion, analysis });
                             } else {
-                                // Safe update - add to edit
                                 const lineText = document.lineAt(dep.line).text;
-                                const versionRegex = /==[\d\w\.\-\+]+/;
+                                const isTOML = document.languageId === 'toml';
+                                const versionRegex = isTOML ? /[=<>!~\^]+\s*[\d\w\.\-\+]+/ : /==[\d\w\.\-\+]+/;
                                 const match = lineText.match(versionRegex);
-                                
+
                                 if (match) {
-                                    const range = new vscode.Range(
-                                        dep.line,
-                                        match.index!,
-                                        dep.line,
-                                        match.index! + match[0].length
-                                    );
-                                    edit.replace(document.uri, range, `==${newVersion}`);
+                                    const versionPart = match[0];
+                                    const startIndex = match.index!;
+                                    const endIndex = startIndex + versionPart.length;
+
+                                    const replacement = buildVersionReplacement(versionPart, newVersion, isTOML);
+                                    const range = new vscode.Range(dep.line, startIndex, dep.line, endIndex);
+                                    edit.replace(document.uri, range, replacement);
                                     safeUpdates++;
                                 }
                             }
@@ -144,20 +158,20 @@ export function activate(context: vscode.ExtensionContext): void {
                     // User clicked Cancel (VS Code provides this automatically)
                     return;
                 } else if (choice === 'Update All (Including Risky)') {
-                    // Add risky updates to edit
+                    const isTOML = document.languageId === 'toml';
                     for (const update of riskyUpdates) {
                         const lineText = document.lineAt(update.dep.line).text;
-                        const versionRegex = /==[\d\w\.\-\+]+/;
+                        const versionRegex = isTOML ? /[=<>!~\^]+\s*[\d\w\.\-\+]+/ : /==[\d\w\.\-\+]+/;
                         const match = lineText.match(versionRegex);
-                        
+
                         if (match) {
-                            const range = new vscode.Range(
-                                update.dep.line,
-                                match.index!,
-                                update.dep.line,
-                                match.index! + match[0].length
-                            );
-                            edit.replace(document.uri, range, `==${update.newVersion}`);
+                            const versionPart = match[0];
+                            const startIndex = match.index!;
+                            const endIndex = startIndex + versionPart.length;
+
+                            const replacement = buildVersionReplacement(versionPart, update.newVersion, isTOML);
+                            const range = new vscode.Range(update.dep.line, startIndex, update.dep.line, endIndex);
+                            edit.replace(document.uri, range, replacement);
                             confirmedRiskyUpdates++;
                         }
                     }
@@ -193,36 +207,36 @@ export function activate(context: vscode.ExtensionContext): void {
     context.subscriptions.push(showUpToDateCommand);
     
     // Register CodeLens Provider for version information and updates
-    const selector: vscode.DocumentSelector = {
-        language: 'pip-requirements',
-        scheme: 'file'
-    };
-    
+    const selector: vscode.DocumentSelector = [
+        { language: 'pip-requirements', scheme: 'file' },
+        { language: 'toml', scheme: 'file' }
+    ];
+
     const codeLensProvider = new PyDepsCodeLensProvider();
     const codeLensDisposable = vscode.languages.registerCodeLensProvider(
         selector,
         codeLensProvider
     );
-    
+
     context.subscriptions.push(codeLensDisposable);
-    
+
     // Handle document changes with debounce (Requirement 1.2, 1.3)
     const changeDisposable = vscode.workspace.onDidChangeTextDocument(event => {
-        if (event.document.languageId === 'pip-requirements') {
+        if (isSupportedFormat(event.document.languageId)) {
             if (debounceTimer) {
                 clearTimeout(debounceTimer);
             }
-            
+
             debounceTimer = setTimeout(async () => {
                 // Refresh CodeLens
                 codeLensProvider.refresh();
-                
+
                 // Update status bar
                 await updateStatusBar(event.document, statusBar);
             }, DEBOUNCE_DELAY);
         }
     });
-    
+
     context.subscriptions.push(changeDisposable);
     
     // Handle configuration changes
@@ -251,15 +265,16 @@ async function updateStatusBar(document: vscode.TextDocument, statusBar: StatusB
         statusBar.hide();
         return;
     }
-    
-    const deps = parseDocument(document.getText());
+
+    const deps = parseDocumentByFormat(document);
     let updatesAvailable = 0;
-    
+
     for (const dep of deps) {
         try {
             const versionInfo = await getLatestCompatible(dep.packageName, '', false, config.cacheTTLMinutes);
             if (versionInfo.latestCompatible) {
-                const currentVersion = dep.versionSpecifier.replace(/^==/, '');
+                const versionPattern = document.languageId === 'toml' ? /^[=<>!~\^]+\s*/ : /^==/;
+                const currentVersion = dep.versionSpecifier.replace(versionPattern, '');
                 if (currentVersion !== versionInfo.latestCompatible) {
                     updatesAvailable++;
                 }
