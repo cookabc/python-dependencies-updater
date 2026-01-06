@@ -127,6 +127,11 @@ export function parsePyprojectDocument(content: string): ParsedDependency[] {
         console.error('Error parsing TOML:', error);
     }
 
+    console.log('[pyprojectParser] Parsed dependencies count:', dependencies.length);
+    dependencies.forEach((dep, i) => {
+        console.log(`[pyprojectParser] Dep ${i + 1}: ${dep.packageName} at line ${dep.line}, col ${dep.startColumn}-${dep.endColumn}`);
+    });
+
     return dependencies;
 }
 
