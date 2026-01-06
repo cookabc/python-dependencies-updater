@@ -135,7 +135,9 @@ function findAndParseDependency(dep: string, lines: string[]): ParsedDependency 
     let lineText = '';
 
     for (let i = 0; i < lines.length; i++) {
-        if (lines[i].includes(dep)) {
+        const trimmedLine = lines[i].trim();
+
+        if (trimmedLine === dep) {
             lineNumber = i;
             lineText = lines[i];
             break;
