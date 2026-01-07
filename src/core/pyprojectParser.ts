@@ -1,168 +1,223 @@
 /**
- * Dependency Parser for pyproject.toml files
- * Parses dependencies from [project.dependencies] and [project.optional-dependencies] sections
+ * pyproject.toml Parser for Python dependency management
+ * Supports [project] dependencies and [project.optional-dependencies]
+ * Uses text-based parsing for better reliability
  */
 
-import * as toml from '@iarna/toml';
-import type { ParsedDependency } from '../types';
+import type { PyProjectDependency } from "../types";
 
-const DEPENDENCY_REGEX = /^([a-zA-Z0-9._-]+)(?:\[[^\]]*\])?\s*(.*)$/;
+// Package name regex (same as requirements.txt)
+const PACKAGE_NAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
 
 /**
- * Parse a single dependency string from TOML
- * Returns null if the dependency should be skipped
+ * Parse a pyproject.toml document and extract dependencies
  */
-function parseDependencyString(
-    depString: string,
-    lineNumber: number,
-    lineText: string
-): ParsedDependency | null {
-    const trimmed = depString.trim();
+export function parsePyProjectDocument(content: string): PyProjectDependency[] {
+  const dependencies: PyProjectDependency[] = [];
+  const lines = content.split("\n");
 
-    if (trimmed === '') {
-        return null;
+  let currentSection = "";
+  let currentExtra: string | undefined;
+  let inDependenciesArray = false;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+
+    // Skip empty lines and comments
+    if (!trimmed || trimmed.startsWith("#")) {
+      continue;
     }
 
-    if (trimmed.startsWith('#')) {
-        return null;
+    // Track current TOML section
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      currentSection = trimmed.slice(1, -1);
+      inDependenciesArray = false;
+
+      // Reset currentExtra when leaving optional-dependencies section
+      if (!currentSection.includes("optional-dependencies")) {
+        currentExtra = undefined;
+      }
+      continue;
     }
 
-    if (trimmed.startsWith('.') || trimmed.startsWith('/') || trimmed.includes('file://')) {
-        return null;
+    // Handle [project] section main dependencies
+    if (
+      currentSection === "project" &&
+      trimmed.includes("dependencies") &&
+      trimmed.includes("=") &&
+      trimmed.includes("[")
+    ) {
+      inDependenciesArray = true;
+      currentExtra = undefined;
+      continue;
     }
 
-    if (trimmed.includes('://')) {
-        const hasProtocol = /^(https?|git|svn|hg|bzr):\/\//.test(trimmed);
-        if (hasProtocol) {
-            return null;
+    // Handle [project.optional-dependencies] section
+    if (currentSection.startsWith("project.optional-dependencies")) {
+      // Extract extra name from section like "project.optional-dependencies.dev"
+      const parts = currentSection.split(".");
+      if (parts.length >= 4) {
+        currentExtra = parts[3];
+      }
+
+      // In optional-dependencies section, any line ending with "=[" starts an array
+      if (currentSection.includes("optional-dependencies")) {
+        // Check if this looks like an optional group definition (e.g., "dev = [")
+        const match = trimmed.match(/^([a-zA-Z0-9._-]+)\s*=\s*\[.*$/);
+        if (match) {
+          currentExtra = match[1];
+          inDependenciesArray = true;
+          continue;
         }
+      }
+
+      // Check for generic dependencies array in optional section
+      if (
+        trimmed.includes("dependencies") &&
+        trimmed.includes("=") &&
+        trimmed.includes("[")
+      ) {
+        inDependenciesArray = true;
+        continue;
+      }
     }
 
-    const match = trimmed.match(DEPENDENCY_REGEX);
-
-    if (!match) {
-        return null;
+    // End of dependencies array
+    if (trimmed === "]" && inDependenciesArray) {
+      inDependenciesArray = false;
+      continue;
     }
 
-    const packageName = match[1];
-    const versionSpecifier = match[2].trim();
+    // Parse dependencies within arrays
+    if (inDependenciesArray && currentSection) {
+      const section =
+        currentSection === "project"
+          ? "project.dependencies"
+          : "project.optional-dependencies";
 
-    const startColumn = lineText.indexOf(packageName);
-    const endColumn = lineText.length;
+      const dep = parseDependencyLine(trimmed, section as any, i, currentExtra);
+      if (dep) {
+        dependencies.push(dep);
+      }
+    }
+  }
 
-    return {
-        packageName,
-        versionSpecifier,
-        line: lineNumber,
-        startColumn,
-        endColumn
-    };
+  console.log(
+    `[PyProjectParser] Total dependencies parsed: ${dependencies.length}`,
+  );
+  console.log(
+    `[PyProjectParser] Dependency breakdown:`,
+    dependencies.map((d) => ({
+      name: d.packageName,
+      section: d.section,
+      extra: d.extra || "none",
+    })),
+  );
+  return dependencies;
 }
 
 /**
- * Parse pyproject.toml and return all dependencies
- * Supports both old PEP 518 and new PEP 621 formats
+ * Parse a single dependency line
  */
-export function parsePyprojectDocument(content: string): ParsedDependency[] {
-    const dependencies: ParsedDependency[] = [];
+function parseDependencyLine(
+  line: string,
+  section: "project.dependencies" | "project.optional-dependencies",
+  lineNumber: number,
+  extra?: string,
+): PyProjectDependency | null {
+  const trimmed = line.trim();
 
-    try {
-        const parsed = toml.parse(content) as any;
-
-        const lines = content.split('\n');
-
-        if (parsed.project) {
-            if (Array.isArray(parsed.project.dependencies)) {
-                parsed.project.dependencies.forEach((dep: string) => {
-                    const parsedDep = findAndParseDependency(dep, lines);
-                    if (parsedDep) {
-                        dependencies.push(parsedDep);
-                    }
-                });
-            }
-
-            // Handle optional-dependencies (use bracket notation for kebab-case keys)
-            const optionalDeps = parsed.project['optional-dependencies'];
-            if (Array.isArray(optionalDeps)) {
-                optionalDeps.forEach((dep: string) => {
-                    const parsedDep = findAndParseDependency(dep, lines);
-                    if (parsedDep) {
-                        dependencies.push(parsedDep);
-                    }
-                });
-            }
-
-            if (typeof optionalDeps === 'object') {
-                // optional-dependencies is a dict of extras
-                const extras: Record<string, string[]> = optionalDeps;
-                Object.keys(extras).forEach(extraName => {
-                    const extraDepsList = extras[extraName];
-                    if (Array.isArray(extraDepsList)) {
-                        extraDepsList.forEach((dep: string) => {
-                            const parsedDep = findAndParseDependency(dep, lines);
-                            if (parsedDep) {
-                                dependencies.push(parsedDep);
-                            }
-                        });
-                    }
-                });
-            }
-        }
-        // PEP 518 format: tool.poetry.dependencies or similar
-        else if (parsed.tool && parsed.tool.poetry && Array.isArray(parsed.tool.poetry.dependencies)) {
-            // Poetry format is more complex (may include dev dependencies)
-            // For now, skip poetry format as it has nested objects
-            return [];
-        }
-        // Legacy setuptools format
-        else if (parsed.install_requires && Array.isArray(parsed.install_requires)) {
-            parsed.install_requires.forEach((dep: string) => {
-                const parsedDep = findAndParseDependency(dep, lines);
-                if (parsedDep) {
-                    dependencies.push(parsedDep);
-                }
-            });
-        }
-    } catch (error) {
-        console.error('Error parsing TOML:', error);
-    }
-
-    console.log('[pyprojectParser] Parsed dependencies count:', dependencies.length);
-    dependencies.forEach((dep, i) => {
-        console.log(`[pyprojectParser] Dep ${i + 1}: ${dep.packageName} at line ${dep.line}, col ${dep.startColumn}-${dep.endColumn}`);
-    });
-
-    return dependencies;
-}
-
-function findAndParseDependency(dep: string, lines: string[]): ParsedDependency | null {
-    let lineNumber = -1;
-    let lineText = '';
-
-    for (let i = 0; i < lines.length; i++) {
-        const trimmedLine = lines[i].trim();
-
-        if (trimmedLine === dep) {
-            lineNumber = i;
-            lineText = lines[i];
-            break;
-        }
-    }
-
-    if (lineNumber >= 0) {
-        return parseDependencyString(dep, lineNumber, lineText);
-    }
-
+  // Skip empty lines, comments, and structural elements
+  if (
+    !trimmed ||
+    trimmed.startsWith("#") ||
+    trimmed.startsWith("[") ||
+    trimmed === "]" ||
+    trimmed === ","
+  ) {
     return null;
+  }
+
+  const cleanLine = trimmed
+    .replace(/^["']/, "")
+    .replace(/["',]+$/, "")
+    .trim();
+
+  // Skip if it's just quotes or brackets
+  if (!cleanLine || cleanLine === "[" || cleanLine === "]") {
+    return null;
+  }
+
+  const match = cleanLine.match(/^([a-zA-Z0-9][a-zA-Z0-9._-]*)(?:\[[^\]]*\])?\s*(.*)$/);
+
+  if (!match) {
+    return null;
+  }
+
+  const packageName = match[1];
+  const versionSpecifier = match[2] ? match[2].trim() : "";
+
+  // Validate package name
+  if (!PACKAGE_NAME_REGEX.test(packageName)) {
+    return null;
+  }
+
+  // Find position in original line for CodeLens placement
+  const startColumn = line.indexOf(packageName);
+  const endColumn = line.length;
+
+  return {
+    packageName,
+    versionSpecifier,
+    section,
+    extra,
+    path: extra
+      ? ["project", "optional-dependencies", extra, packageName]
+      : ["project", "dependencies", packageName],
+    line: lineNumber,
+    startColumn,
+    endColumn,
+  };
 }
 
 /**
- * Format a ParsedDependency back to a dependency string
- * Used for round-trip testing
+ * Format a PyProjectDependency back to a dependency string
  */
-export function formatPyprojectDependency(dep: ParsedDependency): string {
-    if (dep.versionSpecifier) {
-        return `"${dep.packageName}${dep.versionSpecifier}"`;
-    }
-    return `"${dep.packageName}"`;
+export function formatPyProjectDependency(dep: PyProjectDependency): string {
+  if (dep.versionSpecifier) {
+    return `${dep.packageName}${dep.versionSpecifier}`;
+  }
+  return dep.packageName;
+}
+
+/**
+ * Convert pyproject dependency to requirements.txt format for compatibility
+ */
+export function toRequirementsFormat(dep: PyProjectDependency): string {
+  let result = dep.packageName;
+
+  if (dep.versionSpecifier) {
+    result += dep.versionSpecifier;
+  }
+
+  // Add extra for optional dependencies
+  if (dep.extra) {
+    result += `[${dep.extra}]`;
+  }
+
+  return result;
+}
+
+/**
+ * Check if a file is a pyproject.toml file based on its content
+ */
+export function isPyProjectToml(content: string): boolean {
+  try {
+    return (
+      content.includes("[project]") || content.includes("project.dependencies")
+    );
+  } catch {
+    return false;
+  }
 }
