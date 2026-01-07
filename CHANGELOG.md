@@ -2,6 +2,30 @@
 
 All notable changes to the "Python Requirements Updater" extension will be documented in this file.
 
+## [1.1.0] - 2026-01-07
+
+### Added
+- 📦 Full `pyproject.toml` support for modern Python projects
+- 🔍 Smart file type detection (requirements.txt, pyproject.toml)
+- 🧩 Support for `[project.optional-dependencies]` sections
+- 🎯 Consistent version checking across both formats
+- 🔧 Configuration option to enable/disable pyproject.toml support
+
+### Features
+- Automatic detection of both `requirements.txt` and `pyproject.toml` files
+- Support for main dependencies in `[project]` section
+- Support for optional dependencies in `[project.optional-dependencies]` sections
+- Handles packages with extras (e.g., `uvicorn[standard]`)
+- Correct parsing of all version operators (==, >=, <=, !=, ~=)
+- Always shows latest PyPI version regardless of current constraint
+- Preserves TOML formatting (quotes, operators) during updates
+
+### Fixes
+- Fixed version comparison for pyproject.toml files
+- Fixed missing quotes after version updates
+- Fixed incorrect "Update to" prompts when already at latest version
+- Proper extraction of package names with extras
+
 ## [1.0.0] - 2025-01-01
 
 ### Added
