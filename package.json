@@ -2,7 +2,7 @@
   "name": "python-requirements-updater",
   "displayName": "Python Requirements Updater",
   "description": "Smart version management for Python requirements.txt and pyproject.toml files with one-click updates and breaking change detection",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "publisher": "cookabc",
   "license": "MIT",
   "icon": "icon.png",
