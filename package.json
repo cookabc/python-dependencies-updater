@@ -127,6 +127,7 @@
     "pretest": "npm run compile",
     "test": "mocha --require ts-node/register 'src/test/**/*.test.ts'",
     "lint": "eslint src --ext ts",
+    "publish:vsx": "./publish-vsx.sh",
     "publish:ovsx": "./publish-ovsx.sh",
     "publish:universe": "./publish-universe.sh"
   },
