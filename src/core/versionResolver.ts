@@ -50,16 +50,16 @@ export function compareVersions(a: string, b: string): number {
         const numA = partsA[i] || 0;
         const numB = partsB[i] || 0;
         
-        if (numA < numB) return -1;
-        if (numA > numB) return 1;
+        if (numA < numB) {return -1;}
+        if (numA > numB) {return 1;}
     }
     
     // If numeric parts are equal, pre-release versions are less than release
     const aIsPrerelease = isPrerelease(a);
     const bIsPrerelease = isPrerelease(b);
     
-    if (aIsPrerelease && !bIsPrerelease) return -1;
-    if (!aIsPrerelease && bIsPrerelease) return 1;
+    if (aIsPrerelease && !bIsPrerelease) {return -1;}
+    if (!aIsPrerelease && bIsPrerelease) {return 1;}
     
     return 0;
 }
@@ -116,15 +116,15 @@ function satisfiesConstraint(version: string, constraint: VersionConstraint): bo
             const versionParts = parseVersion(version);
             
             // Must be >= constraint version
-            if (cmp < 0) return false;
+            if (cmp < 0) {return false;}
             
             // Major version must match
-            if (versionParts[0] !== constraintParts[0]) return false;
+            if (versionParts[0] !== constraintParts[0]) {return false;}
             
             // If constraint has minor, minor must match
             if (constraintParts.length > 1 && constraint.version.includes('.')) {
                 const constraintMinor = constraintParts[1];
-                if (versionParts[1] !== constraintMinor) return false;
+                if (versionParts[1] !== constraintMinor) {return false;}
             }
             
             return true;
