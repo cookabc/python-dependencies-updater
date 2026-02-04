@@ -1,6 +1,6 @@
 # Change Log
 
-All notable changes to the "Python Requirements Updater" extension will be documented in this file.
+All notable changes to the "Python Dependencies Updater" extension will be documented in this file.
 
 ## [1.1.0] - 2026-01-07
 

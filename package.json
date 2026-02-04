@@ -127,7 +127,8 @@
     "pretest": "npm run compile",
     "test": "mocha --require ts-node/register 'src/test/**/*.test.ts'",
     "lint": "eslint src --ext ts",
-    "publish:ovsx": "./publish-ovsx.sh"
+    "publish:ovsx": "./publish-ovsx.sh",
+    "publish:universe": "./publish-universe.sh"
   },
   "devDependencies": {
     "@types/chai": "^4.3.11",
