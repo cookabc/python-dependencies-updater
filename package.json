@@ -129,7 +129,7 @@
     "lint": "eslint src --ext ts",
     "publish:vsx": "./publish.sh vsx",
     "publish:ovsx": "./publish.sh ovsx",
-    "publish:universe": "./publish.sh all"
+    "publish:all": "./publish.sh all"
   },
   "devDependencies": {
     "@types/chai": "^4.3.11",
