@@ -8,7 +8,7 @@ This is a **VS Code Extension** that provides smart version management for Pytho
 - **Publisher**: cookabc
 - **Version**: 1.1.0
 - **License**: MIT
-- **Repository**: https://github.com/cookabc/python-requirements-updater
+- **Repository**: https://github.com/cookabc/python-dependencies-updater
 
 ## Technology Stack
 
