@@ -2,7 +2,7 @@
   "name": "python-dependencies-updater",
   "displayName": "Python Dependencies Updater",
   "description": "Smart version management for Python requirements.txt and pyproject.toml files with one-click updates and breaking change detection",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "publisher": "cookabc",
   "license": "MIT",
   "icon": "icon.png",

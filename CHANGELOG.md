@@ -2,6 +2,22 @@
 
 All notable changes to the "Python Dependencies Updater" extension will be documented in this file.
 
+## [1.2.0] - 2026-02-06
+
+### Added
+- ⏳ Loading indicator while fetching version information
+- ❌ Error state display for failed version checks (connection failed, package not found)
+- 🌍 Added `checking` and `checkFailed` translations for all 9 supported languages
+
+### Improved
+- 🔧 Refactored PyPI client to use Node.js native https module for better compatibility
+- 🚀 Improved async version fetching with automatic cache and refresh pattern
+- 📝 Better error messages and tooltips for troubleshooting
+
+### Fixed
+- Fixed issue where loading state would hang indefinitely
+- Fixed VS Code not calling resolveCodeLens when command was already set
+
 ## [1.1.0] - 2026-01-07
 
 ### Added
