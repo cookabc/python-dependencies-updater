@@ -103,17 +103,6 @@ export function parsePyProjectDocument(content: string): PyProjectDependency[] {
     }
   }
 
-  console.log(
-    `[PyProjectParser] Total dependencies parsed: ${dependencies.length}`,
-  );
-  console.log(
-    `[PyProjectParser] Dependency breakdown:`,
-    dependencies.map((d) => ({
-      name: d.packageName,
-      section: d.section,
-      extra: d.extra || "none",
-    })),
-  );
   return dependencies;
 }
 

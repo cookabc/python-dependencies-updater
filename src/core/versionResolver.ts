@@ -109,25 +109,22 @@ function satisfiesConstraint(version: string, constraint: VersionConstraint): bo
             return cmp > 0;
         case '<':
             return cmp < 0;
-        case '~=':
-            // Compatible release: ~=X.Y means >=X.Y, ==X.*
-            // ~=X.Y.Z means >=X.Y.Z, ==X.Y.*
-            const constraintParts = parseVersion(constraint.version);
-            const versionParts = parseVersion(version);
-            
-            // Must be >= constraint version
+        case '~=': {
+            // Compatible release per PEP 440:
+            // ~=X.Y means >=X.Y, <(X+1).0
+            // ~=X.Y.Z means >=X.Y.Z, <X.(Y+1).0
             if (cmp < 0) {return false;}
             
-            // Major version must match
-            if (versionParts[0] !== constraintParts[0]) {return false;}
+            const constraintSegments = constraint.version.split('.').map(p => parseInt(p, 10) || 0);
+            const versionParts = parseVersion(version);
             
-            // If constraint has minor, minor must match
-            if (constraintParts.length > 1 && constraint.version.includes('.')) {
-                const constraintMinor = constraintParts[1];
-                if (versionParts[1] !== constraintMinor) {return false;}
+            // Lock all segments except the last specified one
+            for (let i = 0; i < constraintSegments.length - 1; i++) {
+                if (versionParts[i] !== constraintSegments[i]) {return false;}
             }
             
             return true;
+        }
         default:
             return false;
     }

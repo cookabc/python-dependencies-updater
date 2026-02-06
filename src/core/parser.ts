@@ -47,11 +47,8 @@ function shouldSkipLine(line: string): boolean {
     }
     
     // URL-based dependency
-    if (trimmed.includes('://') && !trimmed.includes('://') === false) {
-        const hasProtocol = /^(https?|git|svn|hg|bzr):\/\//.test(trimmed);
-        if (hasProtocol) {
-            return true;
-        }
+    if (/^(https?|git|svn|hg|bzr):\/\//.test(trimmed)) {
+        return true;
     }
     
     return false;

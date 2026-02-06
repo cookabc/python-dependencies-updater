@@ -24,7 +24,7 @@ const messages: Record<string, Messages> = {
         updated: 'Updated',
         packages: 'packages to latest versions',
         noUpdates: 'No packages to update',
-        openRequirements: 'Please open a requirements.txt file'
+        openRequirements: 'Please open a requirements.txt or pyproject.toml file'
     },
     'zh-cn': {
         updateTo: '更新到',
@@ -34,7 +34,7 @@ const messages: Record<string, Messages> = {
         updated: '已更新',
         packages: '个包到最新版本',
         noUpdates: '没有需要更新的包',
-        openRequirements: '请打开 requirements.txt 文件'
+        openRequirements: '请打开 requirements.txt 或 pyproject.toml 文件'
     },
     'zh-tw': {
         updateTo: '更新到',
@@ -44,7 +44,7 @@ const messages: Record<string, Messages> = {
         updated: '已更新',
         packages: '個套件到最新版本',
         noUpdates: '沒有需要更新的套件',
-        openRequirements: '請開啟 requirements.txt 檔案'
+        openRequirements: '請開啟 requirements.txt 或 pyproject.toml 檔案'
     },
     'ja': {
         updateTo: 'アップデート',
@@ -54,7 +54,7 @@ const messages: Record<string, Messages> = {
         updated: '更新しました',
         packages: 'パッケージを最新版に更新',
         noUpdates: '更新するパッケージはありません',
-        openRequirements: 'requirements.txt ファイルを開いてください'
+        openRequirements: 'requirements.txt または pyproject.toml ファイルを開いてください'
     },
     'ko': {
         updateTo: '업데이트',
@@ -64,7 +64,7 @@ const messages: Record<string, Messages> = {
         updated: '업데이트됨',
         packages: '패키지를 최신 버전으로 업데이트',
         noUpdates: '업데이트할 패키지가 없습니다',
-        openRequirements: 'requirements.txt 파일을 열어주세요'
+        openRequirements: 'requirements.txt 또는 pyproject.toml 파일을 열어주세요'
     },
     'fr': {
         updateTo: 'Mettre à jour vers',
@@ -74,7 +74,7 @@ const messages: Record<string, Messages> = {
         updated: 'Mis à jour',
         packages: 'paquets vers les dernières versions',
         noUpdates: 'Aucun paquet à mettre à jour',
-        openRequirements: 'Veuillez ouvrir un fichier requirements.txt'
+        openRequirements: 'Veuillez ouvrir un fichier requirements.txt ou pyproject.toml'
     },
     'de': {
         updateTo: 'Aktualisieren auf',
@@ -84,7 +84,7 @@ const messages: Record<string, Messages> = {
         updated: 'Aktualisiert',
         packages: 'Pakete auf neueste Versionen',
         noUpdates: 'Keine Pakete zu aktualisieren',
-        openRequirements: 'Bitte öffnen Sie eine requirements.txt Datei'
+        openRequirements: 'Bitte öffnen Sie eine requirements.txt oder pyproject.toml Datei'
     },
     'es': {
         updateTo: 'Actualizar a',
@@ -94,7 +94,7 @@ const messages: Record<string, Messages> = {
         updated: 'Actualizado',
         packages: 'paquetes a las últimas versiones',
         noUpdates: 'No hay paquetes para actualizar',
-        openRequirements: 'Por favor abra un archivo requirements.txt'
+        openRequirements: 'Por favor abra un archivo requirements.txt o pyproject.toml'
     },
     'ru': {
         updateTo: 'Обновить до',
@@ -104,7 +104,7 @@ const messages: Record<string, Messages> = {
         updated: 'Обновлено',
         packages: 'пакетов до последних версий',
         noUpdates: 'Нет пакетов для обновления',
-        openRequirements: 'Пожалуйста, откройте файл requirements.txt'
+        openRequirements: 'Пожалуйста, откройте файл requirements.txt или pyproject.toml'
     }
 };
 

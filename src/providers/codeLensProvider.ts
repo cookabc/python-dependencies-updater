@@ -37,6 +37,11 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
       return [];
     }
 
+    // Skip pyproject.toml if support is disabled
+    if (document.languageId === "toml" && !config.supportPyProject) {
+      return [];
+    }
+
     const codeLenses: vscode.CodeLens[] = [];
     const fileName = document.fileName;
     const content = document.getText();

@@ -89,6 +89,11 @@
           "type": "number",
           "default": 60,
           "description": "Cache TTL in minutes for PyPI version data"
+        },
+        "pyDepsHint.supportPyProject": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable or disable pyproject.toml support"
         }
       }
     },
@@ -144,8 +149,5 @@
     "mocha": "^10.2.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.2"
-  },
-  "dependencies": {
-    "@iarna/toml": "^2.2.5"
   }
 }
