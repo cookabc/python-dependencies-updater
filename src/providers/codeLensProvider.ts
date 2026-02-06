@@ -48,22 +48,37 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
     const dependencies = parseDependencies(fileName, content);
 
     // Return placeholder CodeLens items with loading state
-    return dependencies.map((dep: AnyDependency) => {
+    const codeLenses: vscode.CodeLens[] = [];
+    for (const dep of dependencies) {
       const range = new vscode.Range(
         dep.line,
         dep.endColumn,
         dep.line,
         dep.endColumn,
       );
-      const lens: DepCodeLens = Object.assign(
+
+      // Version check lens (resolved async)
+      const versionLens: DepCodeLens = Object.assign(
         new vscode.CodeLens(range, {
           title: "$(loading~spin) Checking...",
           command: "",
         }),
         { dep, document },
       );
-      return lens;
-    });
+      codeLenses.push(versionLens);
+
+      // "Open on PyPI" lens (no resolve needed)
+      const packageNameWithoutExtras = dep.packageName.split("[")[0];
+      codeLenses.push(
+        new vscode.CodeLens(range, {
+          title: "$(link-external) PyPI",
+          command: "pyDepsHint.openOnPyPI",
+          arguments: [packageNameWithoutExtras],
+          tooltip: `Open ${packageNameWithoutExtras} on PyPI`,
+        }),
+      );
+    }
+    return codeLenses;
   }
 
   async resolveCodeLens(
@@ -90,6 +105,7 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
         "",
         config.showPrerelease,
         config.cacheTTLMinutes,
+        config.registryUrl,
       );
 
       if (versionInfo.error || !versionInfo.latestCompatible) {

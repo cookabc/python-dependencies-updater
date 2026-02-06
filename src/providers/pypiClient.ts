@@ -6,6 +6,7 @@
 import type { PackageVersions, PyPIClientResult } from '../types';
 
 interface PyPIResponse {
+    info?: { summary?: string };
     releases: Record<string, unknown[]>;
 }
 
@@ -40,17 +41,20 @@ class ConcurrencyLimiter {
 const limiter = new ConcurrencyLimiter(5);
 const TIMEOUT_MS = 10000;
 
+const DEFAULT_REGISTRY = 'https://pypi.org';
+
 /**
  * Fetch version data from PyPI for a package
  */
-export async function fetchVersions(packageName: string): Promise<PyPIClientResult> {
+export async function fetchVersions(packageName: string, registryUrl?: string): Promise<PyPIClientResult> {
     await limiter.acquire();
     
     try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
         
-        const url = `https://pypi.org/pypi/${encodeURIComponent(packageName)}/json`;
+        const baseUrl = (registryUrl || DEFAULT_REGISTRY).replace(/\/+$/, '');
+        const url = `${baseUrl}/pypi/${encodeURIComponent(packageName)}/json`;
         
         const response = await fetch(url, {
             signal: controller.signal,
@@ -82,6 +86,7 @@ export async function fetchVersions(packageName: string): Promise<PyPIClientResu
             data: {
                 packageName,
                 versions,
+                summary: data.info?.summary || undefined,
                 fetchedAt: Date.now()
             }
         };

@@ -70,6 +70,10 @@
       {
         "command": "pyDepsHint.showUpToDate",
         "title": "Show Package Up-to-date Status"
+      },
+      {
+        "command": "pyDepsHint.openOnPyPI",
+        "title": "Open Package on PyPI"
       }
     ],
     "configuration": {
@@ -94,6 +98,11 @@
           "type": "boolean",
           "default": true,
           "description": "Enable or disable pyproject.toml support"
+        },
+        "pyDepsHint.registryUrl": {
+          "type": "string",
+          "default": "https://pypi.org",
+          "description": "PyPI registry URL (for private mirrors like Artifactory or devpi)"
         }
       }
     },

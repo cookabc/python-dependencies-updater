@@ -5,6 +5,7 @@
 
 import * as vscode from "vscode";
 import { PyDepsCodeLensProvider } from "./providers/codeLensProvider";
+import { PyDepsHoverProvider } from "./providers/hoverProvider";
 import { onConfigChange, getConfig } from "./utils/configuration";
 import { cacheManager } from "./core/cache";
 import { parseDependencies, isSupportedFormat } from "./core/unifiedParser";
@@ -116,6 +117,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
       const document = editor.document;
       const deps = parseDependencies(document.fileName, document.getText());
+      const config = getConfig();
 
       const edit = new vscode.WorkspaceEdit();
       let safeUpdates = 0;
@@ -147,8 +149,9 @@ export function activate(context: vscode.ExtensionContext): void {
               const versionInfo = await getLatestCompatible(
                 dep.packageName,
                 "",
-                false,
-                60,
+                config.showPrerelease,
+                config.cacheTTLMinutes,
+                config.registryUrl,
               );
               if (versionInfo.latestCompatible) {
                 const currentVersion = dep.versionSpecifier.replace(/^==/, "");
@@ -281,6 +284,19 @@ export function activate(context: vscode.ExtensionContext): void {
 
   context.subscriptions.push(showUpToDateCommand);
 
+  // Register command for opening package on PyPI
+  const openOnPyPICommand = vscode.commands.registerCommand(
+    "pyDepsHint.openOnPyPI",
+    (packageName: string) => {
+      const config = getConfig();
+      const baseUrl = config.registryUrl.replace(/\/+$/, '');
+      const url = `${baseUrl}/project/${encodeURIComponent(packageName)}/`;
+      vscode.env.openExternal(vscode.Uri.parse(url));
+    },
+  );
+
+  context.subscriptions.push(openOnPyPICommand);
+
   // Register CodeLens Provider for version information and updates
   const selector: vscode.DocumentSelector = [
     { language: "pip-requirements", scheme: "file" },
@@ -294,6 +310,15 @@ export function activate(context: vscode.ExtensionContext): void {
   );
 
   context.subscriptions.push(codeLensDisposable);
+
+  // Register Hover Provider for package descriptions
+  const hoverProvider = new PyDepsHoverProvider();
+  const hoverDisposable = vscode.languages.registerHoverProvider(
+    selector,
+    hoverProvider,
+  );
+
+  context.subscriptions.push(hoverDisposable);
 
   // Handle document changes with debounce (Requirement 1.2, 1.3)
   const changeDisposable = vscode.workspace.onDidChangeTextDocument((event) => {
@@ -352,8 +377,9 @@ async function updateStatusBar(
       const versionInfo = await getLatestCompatible(
         dep.packageName,
         "",
-        false,
+        config.showPrerelease,
         config.cacheTTLMinutes,
+        config.registryUrl,
       );
       if (versionInfo.latestCompatible) {
         const versionPattern =

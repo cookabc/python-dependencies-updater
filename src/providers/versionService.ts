@@ -15,14 +15,15 @@ export async function getLatestCompatible(
     packageName: string,
     specifier: string,
     includePrerelease: boolean = false,
-    cacheTTLMinutes: number = 60
+    cacheTTLMinutes: number = 60,
+    registryUrl?: string
 ): Promise<VersionInfo> {
     // Check cache first
     let packageVersions = cacheManager.get(packageName, cacheTTLMinutes);
     
     // Fetch from PyPI if not cached
     if (!packageVersions) {
-        const result = await fetchVersions(packageName);
+        const result = await fetchVersions(packageName, registryUrl);
         
         if (!result.success) {
             if (result.error === 'not-found') {
@@ -44,6 +45,7 @@ export async function getLatestCompatible(
     
     return {
         packageName,
-        latestCompatible: resolved.version!
+        latestCompatible: resolved.version!,
+        summary: packageVersions.summary
     };
 }

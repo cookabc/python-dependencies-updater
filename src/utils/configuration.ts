@@ -19,6 +19,7 @@ export function getConfig(): ExtensionConfig {
     showPrerelease: config.get<boolean>("showPrerelease", false),
     cacheTTLMinutes: config.get<number>("cacheTTLMinutes", 60),
     supportPyProject: config.get<boolean>("supportPyProject", true),
+    registryUrl: config.get<string>("registryUrl", "https://pypi.org"),
   };
 }
 

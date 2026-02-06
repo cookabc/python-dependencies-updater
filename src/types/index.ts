@@ -24,6 +24,7 @@ export interface PyProjectDependency {
 export interface PackageVersions {
   packageName: string;
   versions: string[];
+  summary?: string;
   fetchedAt: number;
 }
 
@@ -52,6 +53,7 @@ export interface PyPIClientResult {
 export interface VersionInfo {
   packageName: string;
   latestCompatible: string | null;
+  summary?: string;
   error?: "not-found" | "no-compatible-version" | "fetch-error";
 }
 
@@ -68,6 +70,7 @@ export interface ExtensionConfig {
   showPrerelease: boolean;
   cacheTTLMinutes: number;
   supportPyProject: boolean;
+  registryUrl: string;
 }
 
 export interface FileType {
