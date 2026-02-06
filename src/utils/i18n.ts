@@ -13,6 +13,8 @@ interface Messages {
     packages: string;
     noUpdates: string;
     openRequirements: string;
+    checkFailed: string;
+    checking: string;
 }
 
 const messages: Record<string, Messages> = {
@@ -24,7 +26,9 @@ const messages: Record<string, Messages> = {
         updated: 'Updated',
         packages: 'packages to latest versions',
         noUpdates: 'No packages to update',
-        openRequirements: 'Please open a requirements.txt or pyproject.toml file'
+        openRequirements: 'Please open a requirements.txt or pyproject.toml file',
+        checkFailed: 'Check failed',
+        checking: 'Checking'
     },
     'zh-cn': {
         updateTo: '更新到',
@@ -34,7 +38,9 @@ const messages: Record<string, Messages> = {
         updated: '已更新',
         packages: '个包到最新版本',
         noUpdates: '没有需要更新的包',
-        openRequirements: '请打开 requirements.txt 或 pyproject.toml 文件'
+        openRequirements: '请打开 requirements.txt 或 pyproject.toml 文件',
+        checkFailed: '检查失败',
+        checking: '检查中'
     },
     'zh-tw': {
         updateTo: '更新到',
@@ -44,7 +50,9 @@ const messages: Record<string, Messages> = {
         updated: '已更新',
         packages: '個套件到最新版本',
         noUpdates: '沒有需要更新的套件',
-        openRequirements: '請開啟 requirements.txt 或 pyproject.toml 檔案'
+        openRequirements: '請開啟 requirements.txt 或 pyproject.toml 檔案',
+        checkFailed: '檢查失敗',
+        checking: '檢查中'
     },
     'ja': {
         updateTo: 'アップデート',
@@ -54,7 +62,9 @@ const messages: Record<string, Messages> = {
         updated: '更新しました',
         packages: 'パッケージを最新版に更新',
         noUpdates: '更新するパッケージはありません',
-        openRequirements: 'requirements.txt または pyproject.toml ファイルを開いてください'
+        openRequirements: 'requirements.txt または pyproject.toml ファイルを開いてください',
+        checkFailed: 'チェック失敗',
+        checking: 'チェック中'
     },
     'ko': {
         updateTo: '업데이트',
@@ -64,7 +74,9 @@ const messages: Record<string, Messages> = {
         updated: '업데이트됨',
         packages: '패키지를 최신 버전으로 업데이트',
         noUpdates: '업데이트할 패키지가 없습니다',
-        openRequirements: 'requirements.txt 또는 pyproject.toml 파일을 열어주세요'
+        openRequirements: 'requirements.txt 또는 pyproject.toml 파일을 열어주세요',
+        checkFailed: '확인 실패',
+        checking: '확인 중'
     },
     'fr': {
         updateTo: 'Mettre à jour vers',
@@ -74,7 +86,9 @@ const messages: Record<string, Messages> = {
         updated: 'Mis à jour',
         packages: 'paquets vers les dernières versions',
         noUpdates: 'Aucun paquet à mettre à jour',
-        openRequirements: 'Veuillez ouvrir un fichier requirements.txt ou pyproject.toml'
+        openRequirements: 'Veuillez ouvrir un fichier requirements.txt ou pyproject.toml',
+        checkFailed: 'Échec de la vérification',
+        checking: 'Vérification'
     },
     'de': {
         updateTo: 'Aktualisieren auf',
@@ -84,7 +98,9 @@ const messages: Record<string, Messages> = {
         updated: 'Aktualisiert',
         packages: 'Pakete auf neueste Versionen',
         noUpdates: 'Keine Pakete zu aktualisieren',
-        openRequirements: 'Bitte öffnen Sie eine requirements.txt oder pyproject.toml Datei'
+        openRequirements: 'Bitte öffnen Sie eine requirements.txt oder pyproject.toml Datei',
+        checkFailed: 'Überprüfung fehlgeschlagen',
+        checking: 'Überprüfen'
     },
     'es': {
         updateTo: 'Actualizar a',
@@ -94,7 +110,9 @@ const messages: Record<string, Messages> = {
         updated: 'Actualizado',
         packages: 'paquetes a las últimas versiones',
         noUpdates: 'No hay paquetes para actualizar',
-        openRequirements: 'Por favor abra un archivo requirements.txt o pyproject.toml'
+        openRequirements: 'Por favor abra un archivo requirements.txt o pyproject.toml',
+        checkFailed: 'Comprobación fallida',
+        checking: 'Comprobando'
     },
     'ru': {
         updateTo: 'Обновить до',
@@ -104,24 +122,26 @@ const messages: Record<string, Messages> = {
         updated: 'Обновлено',
         packages: 'пакетов до последних версий',
         noUpdates: 'Нет пакетов для обновления',
-        openRequirements: 'Пожалуйста, откройте файл requirements.txt или pyproject.toml'
+        openRequirements: 'Пожалуйста, откройте файл requirements.txt или pyproject.toml',
+        checkFailed: 'Ошибка проверки',
+        checking: 'Проверка'
     }
 };
 
 function getLocale(): string {
     const locale = vscode.env.language.toLowerCase();
-    
+
     // Handle specific locales
     if (messages[locale]) {
         return locale;
     }
-    
+
     // Handle language families (e.g., zh-cn, zh-tw)
     const language = locale.split('-')[0];
     if (language === 'zh') {
         return locale.includes('tw') || locale.includes('hk') ? 'zh-tw' : 'zh-cn';
     }
-    
+
     // Fallback to English
     return 'en';
 }
