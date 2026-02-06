@@ -12,10 +12,12 @@ import { getLatestCompatible } from "./versionService";
 import { getConfig } from "../utils/configuration";
 import { analyzeVersionUpdate } from "../core/versionAnalyzer";
 import { t } from "../utils/i18n";
+import type { VersionInfo } from "../types";
 
-interface DepCodeLens extends vscode.CodeLens {
-  dep: AnyDependency;
-  document: vscode.TextDocument;
+interface VersionCacheEntry {
+  status: "loading" | "success" | "error";
+  versionInfo?: VersionInfo;
+  timestamp: number;
 }
 
 export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
@@ -24,8 +26,18 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
   public readonly onDidChangeCodeLenses: vscode.Event<void> =
     this._onDidChangeCodeLenses.event;
 
+  // Cache for version info: packageName -> VersionCacheEntry
+  private versionCache: Map<string, VersionCacheEntry> = new Map();
+  // Track pending fetches to avoid duplicate requests
+  private pendingFetches: Set<string> = new Set();
+
   public refresh(): void {
     this._onDidChangeCodeLenses.fire();
+  }
+
+  public clearCache(): void {
+    this.versionCache.clear();
+    this.pendingFetches.clear();
   }
 
   provideCodeLenses(
@@ -47,7 +59,6 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
     const content = document.getText();
     const dependencies = parseDependencies(fileName, content);
 
-    // Return placeholder CodeLens items with loading state
     const codeLenses: vscode.CodeLens[] = [];
     for (const dep of dependencies) {
       const range = new vscode.Range(
@@ -57,18 +68,88 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
         dep.endColumn,
       );
 
-      // Version check lens (resolved async)
-      const versionLens: DepCodeLens = Object.assign(
-        new vscode.CodeLens(range, {
-          title: "$(loading~spin) Checking...",
-          command: "",
-        }),
-        { dep, document },
-      );
-      codeLenses.push(versionLens);
-
-      // "Open on PyPI" lens (no resolve needed)
       const packageNameWithoutExtras = dep.packageName.split("[")[0];
+      const cacheKey = packageNameWithoutExtras.toLowerCase();
+      const cached = this.versionCache.get(cacheKey);
+
+      // Build version CodeLens based on cache state
+      let versionCommand: vscode.Command;
+
+      if (!cached || cached.status === "loading") {
+        // Loading state
+        versionCommand = {
+          title: `$(sync~spin) ${t("checking")}...`,
+          command: "pyDepsHint.showUpToDate",
+          arguments: [dep.packageName, "loading"],
+          tooltip: `Checking latest version for ${dep.packageName}...`,
+        };
+
+        // Start fetching if not already in progress
+        if (!this.pendingFetches.has(cacheKey)) {
+          this.fetchVersionAsync(packageNameWithoutExtras, config);
+        }
+      } else if (cached.status === "error") {
+        // Error state
+        const error = cached.versionInfo?.error;
+        let errorMsg = t("checkFailed");
+        let tooltip = `Failed to check updates for ${dep.packageName}`;
+        const icon = "$(error)";
+
+        if (error === "not-found") {
+          errorMsg = `${icon} Package not found`;
+          tooltip = `Package ${dep.packageName} was not found on the registry`;
+        } else if (error === "fetch-error") {
+          errorMsg = `${icon} Connection failed`;
+          tooltip = `Could not connect to registry to check ${dep.packageName}`;
+        } else {
+          errorMsg = `${icon} ${errorMsg}`;
+        }
+
+        versionCommand = {
+          title: errorMsg,
+          command: "pyDepsHint.showUpToDate",
+          arguments: [dep.packageName, "error"],
+          tooltip: tooltip,
+        };
+      } else {
+        // Success state
+        const versionInfo = cached.versionInfo!;
+        const versionWithoutOperator = dep.versionSpecifier.replace(/^[=<>!~\^]+/, "");
+        const currentVersion = versionWithoutOperator.replace(/["']/g, "");
+        const latestVersion = versionInfo.latestCompatible!;
+
+        if (currentVersion === latestVersion) {
+          versionCommand = {
+            title: `$(check-all) ${t("upToDate")}`,
+            command: "pyDepsHint.showUpToDate",
+            arguments: [dep.packageName, latestVersion],
+            tooltip: `${dep.packageName} ${latestVersion} is up to date`,
+          };
+        } else {
+          const analysis = analyzeVersionUpdate(currentVersion, latestVersion);
+          let icon = "$(arrow-circle-up)";
+          let riskText = "";
+
+          if (analysis.riskLevel === "high") {
+            icon = "$(warning)";
+            riskText = " ⚠️ Major";
+          } else if (analysis.riskLevel === "medium") {
+            icon = "$(info)";
+            riskText = " Minor";
+          }
+
+          versionCommand = {
+            title: `${icon} ${t("updateTo")} ${latestVersion}${riskText}`,
+            command: "pyDepsHint.updateVersion",
+            arguments: [document, dep.line, dep.packageName, latestVersion],
+            tooltip: `Click to update ${dep.packageName} from ${currentVersion} to ${latestVersion}\nUpdate type: ${analysis.updateType}\nRisk level: ${analysis.riskLevel}`,
+          };
+        }
+      }
+
+      codeLenses.push(new vscode.CodeLens(range, versionCommand));
+
+      // "Open on PyPI" lens
       codeLenses.push(
         new vscode.CodeLens(range, {
           title: "$(link-external) PyPI",
@@ -81,73 +162,66 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
     return codeLenses;
   }
 
-  async resolveCodeLens(
-    codeLens: vscode.CodeLens,
-    token: vscode.CancellationToken,
-  ): Promise<vscode.CodeLens | null> {
-    const depLens = codeLens as DepCodeLens;
-    if (!depLens.dep) {
-      return codeLens;
-    }
+  private async fetchVersionAsync(
+    packageName: string,
+    config: ReturnType<typeof getConfig>,
+  ): Promise<void> {
+    const cacheKey = packageName.toLowerCase();
 
-    if (token.isCancellationRequested) {
-      return null;
-    }
+    // Mark as pending
+    this.pendingFetches.add(cacheKey);
 
-    const config = getConfig();
-    const dep = depLens.dep;
-    const document = depLens.document;
+    // Set loading state
+    this.versionCache.set(cacheKey, {
+      status: "loading",
+      timestamp: Date.now(),
+    });
 
     try {
-      const packageNameWithoutExtras = dep.packageName.split("[")[0];
+      console.log(`[CodeLens] Fetching version for ${packageName}`);
       const versionInfo = await getLatestCompatible(
-        packageNameWithoutExtras,
+        packageName,
         "",
         config.showPrerelease,
         config.cacheTTLMinutes,
         config.registryUrl,
       );
 
+      console.log(`[CodeLens] Got version info for ${packageName}:`, versionInfo);
+
       if (versionInfo.error || !versionInfo.latestCompatible) {
-        return null;
-      }
-
-      const versionWithoutOperator = dep.versionSpecifier.replace(/^[=<>!~\^]+/, "");
-      const currentVersion = versionWithoutOperator.replace(/["']/g, "");
-      const latestVersion = versionInfo.latestCompatible;
-
-      if (currentVersion === latestVersion) {
-        codeLens.command = {
-          title: `$(check-all) ${t("upToDate")}`,
-          command: "pyDepsHint.showUpToDate",
-          arguments: [dep.packageName, latestVersion],
-          tooltip: `${dep.packageName} ${latestVersion} is up to date`,
-        };
+        this.versionCache.set(cacheKey, {
+          status: "error",
+          versionInfo,
+          timestamp: Date.now(),
+        });
       } else {
-        const analysis = analyzeVersionUpdate(currentVersion, latestVersion);
-
-        let icon = "$(arrow-circle-up)";
-        let riskText = "";
-
-        if (analysis.riskLevel === "high") {
-          icon = "$(warning)";
-          riskText = " ⚠️ Major";
-        } else if (analysis.riskLevel === "medium") {
-          icon = "$(info)";
-          riskText = " Minor";
-        }
-
-        codeLens.command = {
-          title: `${icon} ${t("updateTo")} ${latestVersion}${riskText}`,
-          command: "pyDepsHint.updateVersion",
-          arguments: [document, dep.line, dep.packageName, latestVersion],
-          tooltip: `Click to update ${dep.packageName} from ${currentVersion} to ${latestVersion}\nUpdate type: ${analysis.updateType}\nRisk level: ${analysis.riskLevel}`,
-        };
+        this.versionCache.set(cacheKey, {
+          status: "success",
+          versionInfo,
+          timestamp: Date.now(),
+        });
       }
-
-      return codeLens;
-    } catch {
-      return null;
+    } catch (e) {
+      console.error(`[CodeLens] Error fetching ${packageName}:`, e);
+      this.versionCache.set(cacheKey, {
+        status: "error",
+        versionInfo: { packageName, latestCompatible: null, error: "fetch-error" },
+        timestamp: Date.now(),
+      });
+    } finally {
+      this.pendingFetches.delete(cacheKey);
+      // Trigger refresh to update the CodeLens display
+      this._onDidChangeCodeLenses.fire();
     }
   }
+
+  // resolveCodeLens is not used anymore since we handle everything in provideCodeLenses
+  async resolveCodeLens(
+    codeLens: vscode.CodeLens,
+    token: vscode.CancellationToken,
+  ): Promise<vscode.CodeLens> {
+    return codeLens;
+  }
 }
+
