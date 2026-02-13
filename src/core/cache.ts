@@ -3,11 +3,38 @@
  * Validates: Requirements 6.1, 6.2, 6.3, 6.4, 6.5
  */
 
+import * as vscode from 'vscode';
 import type { PackageVersions, CacheEntry } from '../types';
 
 export class CacheManager {
     private cache: Map<string, CacheEntry<PackageVersions>> = new Map();
+    private memento?: vscode.Memento;
+    private readonly STORAGE_KEY = 'py-deps-updater-cache';
     
+    constructor(memento?: vscode.Memento) {
+        this.memento = memento;
+        this.loadFromStorage();
+    }
+
+    private loadFromStorage(): void {
+        if (!this.memento) return;
+        const stored = this.memento.get<Record<string, CacheEntry<PackageVersions>>>(this.STORAGE_KEY);
+        if (stored) {
+            for (const [key, entry] of Object.entries(stored)) {
+                this.cache.set(key, entry);
+            }
+        }
+    }
+
+    private saveToStorage(): void {
+        if (!this.memento) return;
+        const storageObj: Record<string, CacheEntry<PackageVersions>> = {};
+        this.cache.forEach((value, key) => {
+            storageObj[key] = value;
+        });
+        this.memento.update(this.STORAGE_KEY, storageObj);
+    }
+
     /**
      * Get cached data for a package
      * Returns null if not found or expired
@@ -21,6 +48,7 @@ export class CacheManager {
         
         if (this.isExpired(entry, ttlMinutes)) {
             this.cache.delete(key.toLowerCase());
+            this.saveToStorage();
             return null;
         }
         
@@ -35,6 +63,7 @@ export class CacheManager {
             data,
             timestamp: Date.now()
         });
+        this.saveToStorage();
     }
     
     /**
@@ -50,6 +79,9 @@ export class CacheManager {
      */
     clear(): void {
         this.cache.clear();
+        if (this.memento) {
+            this.memento.update(this.STORAGE_KEY, undefined);
+        }
     }
     
     /**
@@ -57,6 +89,14 @@ export class CacheManager {
      */
     size(): number {
         return this.cache.size;
+    }
+
+    /**
+     * Initialize with memento for persistence
+     */
+    public setMemento(memento: vscode.Memento): void {
+        this.memento = memento;
+        this.loadFromStorage();
     }
 }
 

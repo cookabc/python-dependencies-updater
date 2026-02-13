@@ -7,6 +7,7 @@ import { cacheManager } from '../core/cache';
 import { fetchVersions } from './pypiClient';
 import { resolve } from '../core/versionResolver';
 import type { VersionInfo } from '../types';
+import { Logger } from '../utils/logger';
 
 /**
  * Get the latest compatible version for a package
@@ -23,12 +24,15 @@ export async function getLatestCompatible(
     
     // Fetch from PyPI if not cached
     if (!packageVersions) {
+        Logger.log(`Fetching PyPI versions for ${packageName}`);
         const result = await fetchVersions(packageName, registryUrl);
         
         if (!result.success) {
             if (result.error === 'not-found') {
+                Logger.error(`Package ${packageName} not found on PyPI`);
                 return { packageName, latestCompatible: null, error: 'not-found' };
             }
+            Logger.error(`Failed to fetch versions for ${packageName}: ${result.error}`);
             return { packageName, latestCompatible: null, error: 'fetch-error' };
         }
         
