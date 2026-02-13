@@ -3,91 +3,86 @@
  * Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5
  */
 
-import * as https from 'https';
-import { URL } from 'url';
 import type { PackageVersions, PyPIClientResult } from '../types';
+import { Logger } from '../utils/logger';
 
 interface PyPIResponse {
     info?: { summary?: string };
     releases: Record<string, unknown[]>;
 }
 
-// Concurrency limiter removed
+// Concurrency limiter
+const MAX_CONCURRENT_REQUESTS = 5;
 const TIMEOUT_MS = 10000;
-
 const DEFAULT_REGISTRY = 'https://pypi.org';
+let activeRequests = 0;
+const requestQueue: (() => void)[] = [];
 
-function makeRequest(url: string): Promise<PyPIResponse> {
-    return new Promise((resolve, reject) => {
-        console.log(`[PyPI-HTTPS] Requesting ${url}`);
-        const parsedUrl = new URL(url);
+async function enqueue(): Promise<void> {
+    if (activeRequests < MAX_CONCURRENT_REQUESTS) {
+        activeRequests++;
+        return Promise.resolve();
+    }
+    return new Promise((resolve) => {
+        requestQueue.push(resolve);
+    });
+}
 
-        const options: https.RequestOptions = {
-            hostname: parsedUrl.hostname,
-            path: parsedUrl.pathname + parsedUrl.search,
-            method: 'GET',
+function dequeue(): void {
+    activeRequests--;
+    const next = requestQueue.shift();
+    if (next) {
+        activeRequests++;
+        next();
+    }
+}
+
+async function makeRequest(url: string): Promise<PyPIResponse> {
+    await enqueue();
+    try {
+        return await doMakeRequest(url);
+    } finally {
+        dequeue();
+    }
+}
+
+async function doMakeRequest(url: string): Promise<PyPIResponse> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+    try {
+        const response = await fetch(url, {
+            signal: controller.signal,
             headers: {
                 'Accept': 'application/json',
                 'User-Agent': 'VSCode-Python-Dependencies-Updater'
-            },
-            timeout: TIMEOUT_MS
-        };
-
-        const req = https.request(options, (res) => {
-            const { statusCode } = res;
-            console.log(`[PyPI-HTTPS] Response status for ${url}: ${statusCode}`);
-
-            if (statusCode === 404) {
-                res.resume();
-                reject(new Error('404'));
-                return;
             }
-
-            if (statusCode !== 200) {
-                res.resume();
-                reject(new Error(`Request failed with status ${statusCode}`));
-                return;
-            }
-
-            res.setEncoding('utf8');
-            let rawData = '';
-
-            res.on('data', (chunk) => {
-                rawData += chunk;
-            });
-
-            res.on('end', () => {
-                try {
-                    console.log(`[PyPI-HTTPS] Data received for ${url}, length: ${rawData.length}`);
-                    const parsedData = JSON.parse(rawData);
-                    resolve(parsedData);
-                } catch (e) {
-                    console.error(`[PyPI-HTTPS] JSON parse error for ${url}:`, e);
-                    reject(e);
-                }
-            });
         });
 
-        req.on('error', (e) => {
-            console.error(`[PyPI-HTTPS] Network error for ${url}:`, e);
-            reject(e);
-        });
+        if (response.status === 404) {
+            throw new Error('404');
+        }
 
-        req.on('timeout', () => {
-            console.error(`[PyPI-HTTPS] Timeout for ${url}`);
-            req.destroy();
-            reject(new Error('Timeout'));
-        });
+        if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+        }
 
-        req.end();
-    });
+        return await response.json() as PyPIResponse;
+    } catch (e: any) {
+        if (e.name === 'AbortError') {
+            throw new Error('Timeout');
+        }
+        throw e;
+    } finally {
+        clearTimeout(timeoutId);
+    }
 }
 
 /**
  * Fetch version data from PyPI for a package
  */
 export async function fetchVersions(packageName: string, registryUrl?: string): Promise<PyPIClientResult> {
-    console.log(`[PyPI] fetchVersions called for ${packageName}`);
+    Logger.log(`fetchVersions called for ${packageName}`);
 
     try {
         const baseUrl = (registryUrl || DEFAULT_REGISTRY).replace(/\/+$/, '');
@@ -96,12 +91,12 @@ export async function fetchVersions(packageName: string, registryUrl?: string): 
         const data = await makeRequest(url);
 
         if (!data.releases || typeof data.releases !== 'object') {
-            console.error(`[PyPI] Invalid data structure for ${packageName}`);
+            Logger.error(`Invalid data structure for ${packageName}`);
             return { success: false, error: 'parse-error' };
         }
 
         const versions = Object.keys(data.releases);
-        console.log(`[PyPI] Success ${packageName}: ${versions.length} versions found`);
+        Logger.log(`Success ${packageName}: ${versions.length} versions found`);
 
         return {
             success: true,
@@ -120,7 +115,7 @@ export async function fetchVersions(packageName: string, registryUrl?: string): 
         if (msg === 'Timeout' || (error instanceof Error && (error as any).code === 'ETIMEDOUT')) {
             return { success: false, error: 'network-error' };
         }
-        console.error(`[PyPI] Final catch error for ${packageName}:`, error);
+        Logger.error(`Final catch error for ${packageName}:`, error);
         return { success: false, error: 'network-error' };
     }
 }
