@@ -15,6 +15,10 @@ interface Messages {
     openRequirements: string;
     checkFailed: string;
     checking: string;
+    updateAnyway: string;
+    updateSafeOnly: string;
+    updateAllRisky: string;
+    majorFound: string;
 }
 
 const messages: Record<string, Messages> = {
@@ -28,7 +32,11 @@ const messages: Record<string, Messages> = {
         noUpdates: 'No packages to update',
         openRequirements: 'Please open a requirements.txt or pyproject.toml file',
         checkFailed: 'Check failed',
-        checking: 'Checking'
+        checking: 'Checking',
+        updateAnyway: 'Update Anyway',
+        updateSafeOnly: 'Update Safe Only',
+        updateAllRisky: 'Update All (Including Risky)',
+        majorFound: 'Found {0} major version update(s) that may include breaking changes:'
     },
     'zh-cn': {
         updateTo: '更新到',
@@ -40,7 +48,11 @@ const messages: Record<string, Messages> = {
         noUpdates: '没有需要更新的包',
         openRequirements: '请打开 requirements.txt 或 pyproject.toml 文件',
         checkFailed: '检查失败',
-        checking: '检查中'
+        checking: '检查中',
+        updateAnyway: '仍然更新',
+        updateSafeOnly: '仅更新安全版本',
+        updateAllRisky: '全部更新 (包含风险)',
+        majorFound: '发现 {0} 个重大版本更新，可能包含破坏性变更：'
     },
     'zh-tw': {
         updateTo: '更新到',
@@ -52,7 +64,11 @@ const messages: Record<string, Messages> = {
         noUpdates: '沒有需要更新的套件',
         openRequirements: '請開啟 requirements.txt 或 pyproject.toml 檔案',
         checkFailed: '檢查失敗',
-        checking: '檢查中'
+        checking: '檢查中',
+        updateAnyway: '仍然更新',
+        updateSafeOnly: '僅更新安全版本',
+        updateAllRisky: '全部更新 (包含風險)',
+        majorFound: '發現 {0} 個重大版本更新，可能包含破壞性變更：'
     },
     'ja': {
         updateTo: 'アップデート',
@@ -64,7 +80,11 @@ const messages: Record<string, Messages> = {
         noUpdates: '更新するパッケージはありません',
         openRequirements: 'requirements.txt または pyproject.toml ファイルを開いてください',
         checkFailed: 'チェック失敗',
-        checking: 'チェック中'
+        checking: 'チェック中',
+        updateAnyway: 'とにかく更新',
+        updateSafeOnly: '安全な更新のみ',
+        updateAllRisky: 'すべて更新 (リスクあり)',
+        majorFound: '{0} 個のメジャーアップデートが見つかりました。破壊的な変更が含まれている可能性があります：'
     },
     'ko': {
         updateTo: '업데이트',
@@ -76,7 +96,11 @@ const messages: Record<string, Messages> = {
         noUpdates: '업데이트할 패키지가 없습니다',
         openRequirements: 'requirements.txt 또는 pyproject.toml 파일을 열어주세요',
         checkFailed: '확인 실패',
-        checking: '확인 중'
+        checking: '확인 중',
+        updateAnyway: '그래도 업데이트',
+        updateSafeOnly: '안전한 업데이트만',
+        updateAllRisky: '모두 업데이트 (위험 포함)',
+        majorFound: '브레이킹 체인지가 포함될 수 있는 {0}개의 메이저 업데이트를 발견했습니다:'
     },
     'fr': {
         updateTo: 'Mettre à jour vers',
@@ -88,7 +112,11 @@ const messages: Record<string, Messages> = {
         noUpdates: 'Aucun paquet à mettre à jour',
         openRequirements: 'Veuillez ouvrir un fichier requirements.txt ou pyproject.toml',
         checkFailed: 'Échec de la vérification',
-        checking: 'Vérification'
+        checking: 'Vérification',
+        updateAnyway: 'Mettre à jour quand même',
+        updateSafeOnly: 'Uniquement les mises à jour sûres',
+        updateAllRisky: 'Tout mettre à jour (y compris les risques)',
+        majorFound: 'Trouvé {0} mise(s) à jour majeure(s) pouvant inclure des changements cassants :'
     },
     'de': {
         updateTo: 'Aktualisieren auf',
@@ -100,7 +128,27 @@ const messages: Record<string, Messages> = {
         noUpdates: 'Keine Pakete zu aktualisieren',
         openRequirements: 'Bitte öffnen Sie eine requirements.txt oder pyproject.toml Datei',
         checkFailed: 'Überprüfung fehlgeschlagen',
-        checking: 'Überprüfen'
+        checking: 'Überprüfen',
+        updateAnyway: 'Trotzdem aktualisieren',
+        updateSafeOnly: 'Nur sichere Updates',
+        updateAllRisky: 'Alle aktualisieren (inklusive Risiko)',
+        majorFound: '{0} Major-Updates gefunden, die bahnbrechende Änderungen enthalten können:'
+    },
+    'it': {
+        updateTo: 'Aggiorna a',
+        upToDate: 'Aggiornato',
+        latest: 'ultima',
+        updateAll: 'Aggiorna tutti i pacchetti alle ultime versioni',
+        updated: 'Aggiornato',
+        packages: 'pacchetti alle ultime versioni',
+        noUpdates: 'Nessun pacchetto da aggiornare',
+        openRequirements: 'Apri un file requirements.txt o pyproject.toml',
+        checkFailed: 'Controllo fallito',
+        checking: 'Controllo',
+        updateAnyway: 'Aggiorna comunque',
+        updateSafeOnly: 'Solo aggiornamenti sicuri',
+        updateAllRisky: 'Aggiorna tutto (inclusi rischi)',
+        majorFound: 'Trovati {0} aggiornamenti principali che potrebbero includere modifiche distruttive:'
     },
     'es': {
         updateTo: 'Actualizar a',
@@ -112,7 +160,11 @@ const messages: Record<string, Messages> = {
         noUpdates: 'No hay paquetes para actualizar',
         openRequirements: 'Por favor abra un archivo requirements.txt o pyproject.toml',
         checkFailed: 'Comprobación fallida',
-        checking: 'Comprobando'
+        checking: 'Comprobando',
+        updateAnyway: 'Actualizar de todos modos',
+        updateSafeOnly: 'Solo actualizaciones seguras',
+        updateAllRisky: 'Actualizar todo (incluyendo riesgos)',
+        majorFound: 'Se encontraron {0} actualizaciones principales que pueden incluir cambios disruptivos:'
     },
     'ru': {
         updateTo: 'Обновить до',
@@ -124,7 +176,11 @@ const messages: Record<string, Messages> = {
         noUpdates: 'Нет пакетов для обновления',
         openRequirements: 'Пожалуйста, откройте файл requirements.txt или pyproject.toml',
         checkFailed: 'Ошибка проверки',
-        checking: 'Проверка'
+        checking: 'Проверка',
+        updateAnyway: 'Обновить в любом случае',
+        updateSafeOnly: 'Только безопасные обновления',
+        updateAllRisky: 'Обновить все (включая рискованные)',
+        majorFound: 'Найдено {0} мажорных обновлений, которые могут содержать критические изменения:'
     }
 };
 
@@ -146,7 +202,13 @@ function getLocale(): string {
     return 'en';
 }
 
-export function t(key: keyof Messages): string {
+export function t(key: keyof Messages, ...args: any[]): string {
     const locale = getLocale();
-    return messages[locale]?.[key] || messages['en'][key];
+    let msg = messages[locale]?.[key] || messages['en'][key];
+    if (args.length > 0) {
+        args.forEach((arg, i) => {
+            msg = msg.replace(`{${i}}`, String(arg));
+        });
+    }
+    return msg;
 }

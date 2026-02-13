@@ -13,6 +13,7 @@ import { getLatestCompatible } from "./providers/versionService";
 import { analyzeVersionUpdate } from "./core/versionAnalyzer";
 import { StatusBarManager } from "./utils/statusBar";
 import { t } from "./utils/i18n";
+import { Logger } from "./utils/logger";
 
 const DEBOUNCE_DELAY = 300;
 let debounceTimer: NodeJS.Timeout | undefined;
@@ -36,7 +37,11 @@ function buildVersionReplacement(
 }
 
 export function activate(context: vscode.ExtensionContext): void {
-  console.log("Python Dependencies Updater is now active");
+  Logger.init("Python Dependencies");
+  Logger.log("Python Dependencies Updater is now active");
+
+  // Initialize cache with persistence
+  cacheManager.setMemento(context.globalState);
 
   // Initialize status bar
   const statusBar = new StatusBarManager();
@@ -70,10 +75,10 @@ export function activate(context: vscode.ExtensionContext): void {
         const choice = await vscode.window.showWarningMessage(
           `⚠️ Major version update detected!\n\n${packageName}: ${currentVersion} → ${newVersion}\n\nThis may include breaking changes. Continue?`,
           { modal: true },
-          "Update Anyway",
+          t("updateAnyway"),
         );
 
-        if (choice !== "Update Anyway") {
+        if (choice !== t("updateAnyway")) {
           return;
         }
       }
@@ -215,16 +220,16 @@ export function activate(context: vscode.ExtensionContext): void {
           .join("\n");
 
         const choice = await vscode.window.showWarningMessage(
-          `⚠️ Found ${riskyUpdates.length} major version update(s) that may include breaking changes:\n\n${riskyList}\n\nHow would you like to proceed?`,
+          t("majorFound", riskyUpdates.length) + "\n\n" + riskyList + "\n\nHow would you like to proceed?",
           { modal: true },
-          "Update Safe Only",
-          "Update All (Including Risky)",
+          t("updateSafeOnly"),
+          t("updateAllRisky"),
         );
 
         if (choice === undefined) {
           // User clicked Cancel (VS Code provides this automatically)
           return;
-        } else if (choice === "Update All (Including Risky)") {
+        } else if (choice === t("updateAllRisky")) {
           const isTOML = document.languageId === "toml";
           for (const update of riskyUpdates) {
             const lineText = document.lineAt(update.dep.line).text;

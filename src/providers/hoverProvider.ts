@@ -4,9 +4,11 @@
  */
 
 import * as vscode from "vscode";
-import { parseDependencies, type AnyDependency } from "../core/unifiedParser";
+import { parseDependencies } from "../core/unifiedParser";
 import { getLatestCompatible } from "./versionService";
 import { getConfig } from "../utils/configuration";
+import { t } from "../utils/i18n";
+import { Logger } from "../utils/logger";
 
 export class PyDepsHoverProvider implements vscode.HoverProvider {
   async provideHover(
@@ -38,6 +40,7 @@ export class PyDepsHoverProvider implements vscode.HoverProvider {
       return null;
     }
 
+    Logger.log(`Providing hover for ${dep.packageName}`);
     try {
       const packageNameWithoutExtras = dep.packageName.split("[")[0];
       const versionInfo = await getLatestCompatible(
@@ -63,7 +66,7 @@ export class PyDepsHoverProvider implements vscode.HoverProvider {
       }
 
       if (versionInfo.latestCompatible) {
-        markdown.appendMarkdown(`**Latest version:** ${versionInfo.latestCompatible}\n\n`);
+        markdown.appendMarkdown(`**${t('latest')}:** ${versionInfo.latestCompatible}\n\n`);
       }
 
       const baseUrl = config.registryUrl.replace(/\/+$/, '');
@@ -79,7 +82,8 @@ export class PyDepsHoverProvider implements vscode.HoverProvider {
       );
 
       return new vscode.Hover(markdown, range);
-    } catch {
+    } catch (e) {
+      Logger.error(`Hover error for ${dep.packageName}`, e);
       return null;
     }
   }
