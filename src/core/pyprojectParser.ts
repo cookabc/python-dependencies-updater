@@ -1,199 +1,167 @@
-/**
- * pyproject.toml Parser for Python dependency management
- * Supports [project] dependencies and [project.optional-dependencies]
- * Uses text-based parsing for better reliability
- */
-
+import * as toml from '@iarna/toml';
 import type { PyProjectDependency } from "../types";
 
-// Package name regex (same as requirements.txt)
 const PACKAGE_NAME_REGEX = /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/;
 
-/**
- * Parse a pyproject.toml document and extract dependencies
- */
-export function parsePyProjectDocument(content: string): PyProjectDependency[] {
-  const dependencies: PyProjectDependency[] = [];
-  const lines = content.split("\n");
-
-  let currentSection = "";
-  let currentExtra: string | undefined;
-  let inDependenciesArray = false;
-
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    const trimmed = line.trim();
-
-    // Skip empty lines and comments
-    if (!trimmed || trimmed.startsWith("#")) {
-      continue;
-    }
-
-    // Track current TOML section
-    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
-      currentSection = trimmed.slice(1, -1);
-      inDependenciesArray = false;
-
-      // Reset currentExtra when leaving optional-dependencies section
-      if (!currentSection.includes("optional-dependencies")) {
-        currentExtra = undefined;
-      }
-      continue;
-    }
-
-    // Handle [project] section main dependencies
-    if (
-      currentSection === "project" &&
-      trimmed.includes("dependencies") &&
-      trimmed.includes("=") &&
-      trimmed.includes("[")
-    ) {
-      // Check for inline array (both [ and ] on same line)
-      if (trimmed.includes("]")) {
-        const inlineMatch = trimmed.match(/\[([^\]]*)\]/);
-        if (inlineMatch) {
-          const items = inlineMatch[1].split(",").map(s => s.trim()).filter(s => s);
-          for (const item of items) {
-            const dep = parseDependencyLine(item, "project.dependencies", i, undefined);
-            if (dep) {
-              dependencies.push(dep);
-            }
-          }
-        }
-        continue;
-      }
-      inDependenciesArray = true;
-      currentExtra = undefined;
-      continue;
-    }
-
-    // Handle [project.optional-dependencies] section
-    if (currentSection.startsWith("project.optional-dependencies")) {
-      // Extract extra name from section like "project.optional-dependencies.dev"
-      const parts = currentSection.split(".");
-      if (parts.length >= 4) {
-        currentExtra = parts[3];
-      }
-
-      // In optional-dependencies section, any line ending with "=[" starts an array
-      if (currentSection.includes("optional-dependencies")) {
-        // Check if this looks like an optional group definition (e.g., "dev = [")
-        const match = trimmed.match(/^([a-zA-Z0-9._-]+)\s*=\s*\[(.*)$/);
-        if (match) {
-          currentExtra = match[1];
-          // Check for inline array (both [ and ] on same line)
-          if (trimmed.includes("]")) {
-            const inlineContent = match[2].replace(/\].*$/, "");
-            const items = inlineContent.split(",").map(s => s.trim()).filter(s => s);
-            for (const item of items) {
-              const dep = parseDependencyLine(item, "project.optional-dependencies", i, currentExtra);
-              if (dep) {
-                dependencies.push(dep);
-              }
-            }
-            continue;
-          }
-          inDependenciesArray = true;
-          continue;
-        }
-      }
-
-      // Check for generic dependencies array in optional section
-      if (
-        trimmed.includes("dependencies") &&
-        trimmed.includes("=") &&
-        trimmed.includes("[")
-      ) {
-        inDependenciesArray = true;
-        continue;
-      }
-    }
-
-    // End of dependencies array
-    if (trimmed === "]" && inDependenciesArray) {
-      inDependenciesArray = false;
-      continue;
-    }
-
-    // Parse dependencies within arrays
-    if (inDependenciesArray && currentSection) {
-      const section =
-        currentSection === "project"
-          ? "project.dependencies"
-          : "project.optional-dependencies";
-
-      const dep = parseDependencyLine(trimmed, section as any, i, currentExtra);
-      if (dep) {
-        dependencies.push(dep);
-      }
-    }
-  }
-
-  return dependencies;
+interface PyProject {
+  project?: {
+    dependencies?: string[];
+    'optional-dependencies'?: Record<string, string[]>;
+  };
 }
 
 /**
- * Parse a single dependency line
+ * Parse a pyproject.toml document and extract dependencies using @iarna/toml
  */
-function parseDependencyLine(
-  line: string,
+export function parsePyProjectDocument(content: string): PyProjectDependency[] {
+  try {
+    const parsed = toml.parse(content) as PyProject;
+    const dependencies: PyProjectDependency[] = [];
+    const lines = content.split('\n');
+
+    // 1. Parse [project.dependencies]
+    if (parsed.project?.dependencies) {
+      dependencies.push(...extractDependencies(
+        parsed.project.dependencies,
+        'project.dependencies',
+        lines,
+        content
+      ));
+    }
+
+    // 2. Parse [project.optional-dependencies]
+    if (parsed.project?.['optional-dependencies']) {
+      for (const [extra, deps] of Object.entries(parsed.project['optional-dependencies'])) {
+        dependencies.push(...extractDependencies(
+          deps,
+          'project.optional-dependencies',
+          lines,
+          content,
+          extra
+        ));
+      }
+    }
+
+    return dependencies;
+  } catch (e) {
+    // Fallback or silent failure for invalid TOML
+    return [];
+  }
+}
+
+function extractDependencies(
+  deps: string[],
   section: "project.dependencies" | "project.optional-dependencies",
-  lineNumber: number,
-  extra?: string,
-): PyProjectDependency | null {
-  const trimmed = line.trim();
+  lines: string[],
+  content: string,
+  extra?: string
+): PyProjectDependency[] {
+  const result: PyProjectDependency[] = [];
 
-  // Skip empty lines, comments, and structural elements
-  if (
-    !trimmed ||
-    trimmed.startsWith("#") ||
-    trimmed.startsWith("[") ||
-    trimmed === "]" ||
-    trimmed === ","
-  ) {
-    return null;
+  for (const depString of deps) {
+    // Parse the dependency string (e.g., "flask==2.0.0")
+    // Simple regex to split package name from specifier
+    const match = depString.match(/^([a-zA-Z0-9][a-zA-Z0-9._-]*)(?:\[[^\]]*\])?\s*(.*)$/);
+    if (!match) {continue;}
+
+    const packageName = match[1];
+    const versionSpecifier = match[2]?.trim() || "";
+
+    if (!PACKAGE_NAME_REGEX.test(packageName)) {continue;}
+
+    // Find the line number in the original content
+    // This is a bit tricky with TOML since the parser doesn't give line numbers.
+    // We search for the dependency string in the lines.
+    // Note: This might be inaccurate if the same dependency string appears multiple times (e.g. comments).
+    // A robust solution would track position, but for now we scan lines.
+    const lineIndex = findDependencyLine(lines, depString, section, extra);
+
+    if (lineIndex !== -1) {
+      const line = lines[lineIndex];
+      const startColumn = line.indexOf(packageName); // Approximate
+      const endColumn = line.length;
+
+      result.push({
+        packageName,
+        versionSpecifier,
+        section,
+        extra,
+        path: extra
+          ? ["project", "optional-dependencies", extra, packageName]
+          : ["project", "dependencies", packageName],
+        line: lineIndex,
+        startColumn: startColumn !== -1 ? startColumn : 0,
+        endColumn
+      });
+    }
   }
 
-  const cleanLine = trimmed
-    .replace(/^["']/, "")
-    .replace(/["',]+$/, "")
-    .trim();
+  return result;
+}
 
-  // Skip if it's just quotes or brackets
-  if (!cleanLine || cleanLine === "[" || cleanLine === "]") {
-    return null;
+function findDependencyLine(
+  lines: string[],
+  depString: string,
+  section: string,
+  extra?: string
+): number {
+  // Heuristic to find the line number
+  // We search for the string inside quotes
+  // We also try to respect the section context if possible (simplified here)
+  
+  // Create a regex that matches the dependency string within quotes
+  // Escape special regex characters in depString
+  const escapedDep = depString.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`['"]${escapedDep}['"]`);
+
+  // State machine to track section
+  let currentSection = "";
+  let currentExtra = "";
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // Update section
+    if (line.startsWith('[') && line.endsWith(']')) {
+      currentSection = line.slice(1, -1);
+      if (!currentSection.includes('optional-dependencies')) {
+        currentExtra = "";
+      }
+      continue;
+    }
+
+    // Update extra for optional-dependencies
+    if (currentSection.includes('optional-dependencies')) {
+       const match = line.match(/^([a-zA-Z0-9._-]+)\s*=/);
+       if (match) {
+         currentExtra = match[1];
+       }
+    }
+
+    // Check match
+    if (regex.test(line)) {
+      // Verify context
+      if (section === 'project.dependencies') {
+        if (currentSection === 'project' || currentSection === 'project.dependencies') {return i;}
+      } else if (section === 'project.optional-dependencies') {
+        // Check if we are in [project.optional-dependencies]
+        // If extra is provided, try to ensure we are in the right block
+        // This is a best-effort heuristic
+        if (currentSection.startsWith('project.optional-dependencies')) {
+            // Either [project.optional-dependencies] table or [project.optional-dependencies.extra]
+            if (currentSection === `project.optional-dependencies.${extra}`) {return i;}
+            if (currentSection === 'project.optional-dependencies' && currentExtra === extra) {return i;}
+        }
+      }
+    }
   }
 
-  const match = cleanLine.match(/^([a-zA-Z0-9][a-zA-Z0-9._-]*)(?:\[[^\]]*\])?\s*(.*)$/);
-
-  if (!match) {
-    return null;
+  // Fallback: just find the first occurrence if context matching failed (e.g. inline tables)
+  for (let i = 0; i < lines.length; i++) {
+      if (regex.test(lines[i])) {return i;}
   }
 
-  const packageName = match[1];
-  const versionSpecifier = match[2] ? match[2].trim() : "";
-
-  // Validate package name
-  if (!PACKAGE_NAME_REGEX.test(packageName)) {
-    return null;
-  }
-
-  // Find position in original line for CodeLens placement
-  const startColumn = line.indexOf(packageName);
-  const endColumn = line.length;
-
-  return {
-    packageName,
-    versionSpecifier,
-    section,
-    extra,
-    path: extra
-      ? ["project", "optional-dependencies", extra, packageName]
-      : ["project", "dependencies", packageName],
-    line: lineNumber,
-    startColumn,
-    endColumn,
-  };
+  return -1;
 }
 
 /**
@@ -229,9 +197,8 @@ export function toRequirementsFormat(dep: PyProjectDependency): string {
  */
 export function isPyProjectToml(content: string): boolean {
   try {
-    return (
-      content.includes("[project]") || content.includes("project.dependencies")
-    );
+    const parsed = toml.parse(content) as any;
+    return !!(parsed.project && (parsed.project.dependencies || parsed.project['optional-dependencies']));
   } catch {
     return false;
   }
