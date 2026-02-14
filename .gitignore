@@ -1,11 +1,41 @@
-out/
+# Dependency directories
 node_modules/
-.vscode-test/
-*.vsix
-.DS_Store
+
+# Build output
+out/
+dist/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 *.log
 
-.kiro/
-.vscode/
+# OS files
+.DS_Store
+Thumbs.db
 
+# VS Code files
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/settings.json
+!.vscode/tasks.json
+
+# Testing
+.vscode-test/
+coverage/
+
+# Extension packages
+*.vsix
+
+# Environment variables
 .env
+.env.local
+.env.*.local
+
+# TypeScript
+*.tsbuildinfo
+
+# Temporary files
+test-manual.js*
