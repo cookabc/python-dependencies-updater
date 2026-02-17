@@ -13,14 +13,36 @@ const CONFIG_SECTION = "pyDepsHint";
  */
 export function getConfig(): ExtensionConfig {
   const config = vscode.workspace.getConfiguration(CONFIG_SECTION);
+  const registryUrl = config.get<string>("registryUrl", "https://pypi.org");
 
   return {
     enabled: config.get<boolean>("enabled", true),
     showPrerelease: config.get<boolean>("showPrerelease", false),
     cacheTTLMinutes: config.get<number>("cacheTTLMinutes", 60),
     supportPyProject: config.get<boolean>("supportPyProject", true),
-    registryUrl: config.get<string>("registryUrl", "https://pypi.org"),
+    registryUrl: validateRegistryUrl(registryUrl),
   };
+}
+
+/**
+ * Validates the registry URL to ensure it's a valid web URL
+ */
+export function validateRegistryUrl(url: string): string {
+  const defaultUrl = "https://pypi.org";
+  if (!url || typeof url !== "string") {
+    return defaultUrl;
+  }
+
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return url;
+    }
+  } catch {
+    // Fallback to default
+  }
+
+  return defaultUrl;
 }
 
 /**
