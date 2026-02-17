@@ -21,6 +21,19 @@ interface VersionCacheEntry {
   timestamp: number;
 }
 
+/**
+ * Custom CodeLens that stores dependency and document info for resolution
+ */
+class DependencyCodeLens extends vscode.CodeLens {
+  constructor(
+    range: vscode.Range,
+    public readonly dependency: AnyDependency,
+    public readonly document: vscode.TextDocument,
+  ) {
+    super(range);
+  }
+}
+
 export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
   private _onDidChangeCodeLenses: vscode.EventEmitter<void> =
     new vscode.EventEmitter<void>();
@@ -70,9 +83,7 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
       );
 
       // Create placeholder CodeLens for version info
-      const versionLens = new vscode.CodeLens(range);
-      (versionLens as any).dependency = dep;
-      (versionLens as any).document = document;
+      const versionLens = new DependencyCodeLens(range, dep, document);
       codeLenses.push(versionLens);
 
       // "Open on PyPI" lens (added immediately as it's static)
@@ -93,12 +104,12 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
     codeLens: vscode.CodeLens,
     token: vscode.CancellationToken,
   ): Promise<vscode.CodeLens> {
-    const dep = (codeLens as any).dependency as AnyDependency;
-    const document = (codeLens as any).document as vscode.TextDocument;
-
-    if (!dep || !document) {
+    if (!(codeLens instanceof DependencyCodeLens)) {
       return codeLens;
     }
+
+    const dep = codeLens.dependency;
+    const document = codeLens.document;
 
     const config = getConfig();
     const packageNameWithoutExtras = dep.packageName.split("[")[0];
