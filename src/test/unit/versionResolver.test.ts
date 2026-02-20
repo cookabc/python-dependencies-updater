@@ -26,6 +26,54 @@ describe('Version Resolver', () => {
             assert.strictEqual(compareVersions('1.0.0-alpha', '1.0.0'), -1);
             assert.strictEqual(compareVersions('1.0.0', '1.0.0-beta'), 1);
         });
+
+        it('should correctly compare standard versions', () => {
+            assert.strictEqual(compareVersions('1.0.0', '1.0.1'), -1);
+            assert.strictEqual(compareVersions('1.1.0', '1.0.9'), 1);
+            assert.strictEqual(compareVersions('1.0.0', '1.0.0'), 0);
+            assert.strictEqual(compareVersions('2.0.0', '1.0.0'), 1);
+        });
+
+        it('should correctly compare pre-release versions (alpha < beta < rc)', () => {
+            // alpha < beta
+            assert.strictEqual(compareVersions('1.0.0a1', '1.0.0b1'), -1);
+            assert.strictEqual(compareVersions('1.0.0alpha1', '1.0.0beta1'), -1);
+
+            // beta < rc
+            assert.strictEqual(compareVersions('1.0.0b1', '1.0.0rc1'), -1);
+            assert.strictEqual(compareVersions('1.0.0beta1', '1.0.0pre1'), -1);
+
+            // rc < final
+            assert.strictEqual(compareVersions('1.0.0rc1', '1.0.0'), -1);
+
+            // dev < alpha
+            assert.strictEqual(compareVersions('1.0.0dev1', '1.0.0a1'), -1);
+        });
+
+        it('should correctly compare post-release versions', () => {
+            // final < post
+            assert.strictEqual(compareVersions('1.0.0', '1.0.0.post1'), -1);
+
+            // post1 < post2
+            assert.strictEqual(compareVersions('1.0.0.post1', '1.0.0.post2'), -1);
+        });
+
+        it('should correctly compare pre-release numbers', () => {
+            assert.strictEqual(compareVersions('1.0.0a1', '1.0.0a2'), -1);
+            assert.strictEqual(compareVersions('1.0.0b1', '1.0.0b2'), -1);
+            assert.strictEqual(compareVersions('1.0.0rc1', '1.0.0rc2'), -1);
+        });
+
+        it('should correctly compare numeric parts vs pre-release', () => {
+            // 1.0.0 < 1.0.1a1
+            assert.strictEqual(compareVersions('1.0.0', '1.0.1a1'), -1);
+            // 1.0.1a1 < 1.0.1
+            assert.strictEqual(compareVersions('1.0.1a1', '1.0.1'), -1);
+        });
+
+        it('should handle complex pre-release patterns', () => {
+            assert.strictEqual(compareVersions('1.0.0a1', '1.0.0.a1'), 0);
+        });
     });
 
     describe('satisfies', () => {

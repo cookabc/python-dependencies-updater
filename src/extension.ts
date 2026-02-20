@@ -14,27 +14,14 @@ import { analyzeVersionUpdate } from "./core/versionAnalyzer";
 import { StatusBarManager } from "./utils/statusBar";
 import { t } from "./utils/i18n";
 import { Logger } from "./utils/logger";
+import {
+    extractVersionFromLine,
+    buildVersionReplacement,
+    extractVersionNumber
+} from "./utils/dependencyUtils";
 
 const DEBOUNCE_DELAY = 300;
 let debounceTimer: NodeJS.Timeout | undefined;
-
-function buildVersionReplacement(
-  lineText: string,
-  newVersion: string,
-  isTOML: boolean,
-): string {
-  if (isTOML) {
-    // Extract the version operator from the line
-    const versionMatch = lineText.match(/([=<>!~^]+)\s*[^"',]+/);
-    if (versionMatch) {
-      const operator = versionMatch[1];
-      return `${operator}${newVersion}`;
-    }
-    // Default to exact version if no operator found
-    return `==${newVersion}`;
-  }
-  return `==${newVersion}`;
-}
 
 export function activate(context: vscode.ExtensionContext): void {
   Logger.init("Python Dependencies");
@@ -59,13 +46,8 @@ export function activate(context: vscode.ExtensionContext): void {
       const lineText = document.lineAt(line).text;
       const isTOML = document.languageId === "toml";
 
-      const versionPattern = isTOML
-        ? /[=<>!~\^]+\s*([^"',]+)/
-        : /==([^\s]+)/;
-      const currentVersionMatch = lineText.match(versionPattern);
-      const currentVersion = currentVersionMatch
-        ? currentVersionMatch[1].replace(/["']/g, "")
-        : "";
+      const match = extractVersionFromLine(lineText, isTOML);
+      const currentVersion = match ? match.version : "";
 
       // Analyze update risk
       const analysis = analyzeVersionUpdate(currentVersion, newVersion);
@@ -83,23 +65,16 @@ export function activate(context: vscode.ExtensionContext): void {
         }
       }
 
-      const edit = new vscode.WorkspaceEdit();
-      const versionRegex = isTOML
-        ? /([=<>!~\^]+)\s*[^"',]+/
-        : /==([\d\w\.\-\+]+)/;
-      const match = lineText.match(versionRegex);
-
       if (match) {
-        const versionPart = match[0];
-        const startIndex = match.index!;
-        const endIndex = startIndex + versionPart.length;
-
         const replacement = buildVersionReplacement(
-          versionPart,
+          lineText,
           newVersion,
           isTOML,
+          match
         );
-        const range = new vscode.Range(line, startIndex, line, endIndex);
+        const range = new vscode.Range(line, match.startIndex, line, match.endIndex);
+
+        const edit = new vscode.WorkspaceEdit();
         edit.replace(document.uri, range, replacement);
         await vscode.workspace.applyEdit(edit);
 
@@ -180,12 +155,10 @@ export function activate(context: vscode.ExtensionContext): void {
             }
 
             const { dep, versionInfo } = result;
-            const currentVersion = dep.versionSpecifier
-              .replace(/^==/, "")
-              .trim();
-            const newVersion = versionInfo.latestCompatible;
+            const currentVersion = extractVersionNumber(dep.versionSpecifier);
+            const newVersion = versionInfo.latestCompatible!;
 
-            if (currentVersion !== newVersion) {
+            if (currentVersion && currentVersion !== newVersion) {
               const analysis = analyzeVersionUpdate(currentVersion, newVersion);
 
               if (analysis.riskLevel === "high") {
@@ -198,26 +171,20 @@ export function activate(context: vscode.ExtensionContext): void {
               } else {
                 const lineText = document.lineAt(dep.line).text;
                 const isTOML = document.languageId === "toml";
-                const versionRegex = isTOML
-                  ? /([=<>!~\^]+)\s*[^"',]+/
-                  : /==([\d\w\.\-\+]+)/;
-                const match = lineText.match(versionRegex);
+                const match = extractVersionFromLine(lineText, isTOML);
 
                 if (match) {
-                  const versionPart = match[0];
-                  const startIndex = match.index!;
-                  const endIndex = startIndex + versionPart.length;
-
                   const replacement = buildVersionReplacement(
-                    versionPart,
+                    lineText,
                     newVersion,
                     isTOML,
+                    match
                   );
                   const range = new vscode.Range(
                     dep.line,
-                    startIndex,
+                    match.startIndex,
                     dep.line,
-                    endIndex,
+                    match.endIndex,
                   );
                   edit.replace(document.uri, range, replacement);
                   safeUpdates++;
@@ -252,26 +219,20 @@ export function activate(context: vscode.ExtensionContext): void {
           const isTOML = document.languageId === "toml";
           for (const update of riskyUpdates) {
             const lineText = document.lineAt(update.dep.line).text;
-            const versionRegex = isTOML
-              ? /([=<>!~\^]+)\s*[^"',]+/
-              : /==([\d\w\.\-\+]+)/;
-            const match = lineText.match(versionRegex);
+            const match = extractVersionFromLine(lineText, isTOML);
 
             if (match) {
-              const versionPart = match[0];
-              const startIndex = match.index!;
-              const endIndex = startIndex + versionPart.length;
-
               const replacement = buildVersionReplacement(
-                versionPart,
+                lineText,
                 update.newVersion,
                 isTOML,
+                match
               );
               const range = new vscode.Range(
                 update.dep.line,
-                startIndex,
+                match.startIndex,
                 update.dep.line,
-                endIndex,
+                match.endIndex,
               );
               edit.replace(document.uri, range, replacement);
               confirmedRiskyUpdates++;
@@ -416,13 +377,8 @@ async function updateStatusBar(
   for (const result of results) {
     if (result && result.versionInfo.latestCompatible) {
       const { dep, versionInfo } = result;
-      const versionPattern =
-        document.languageId === "toml" ? /^[=<>!~\^]+\s*["']?/ : /^==/;
-      const currentVersion = dep.versionSpecifier
-        .replace(versionPattern, "")
-        .replace(/["']/g, "")
-        .trim();
-      if (currentVersion !== versionInfo.latestCompatible) {
+      const currentVersion = extractVersionNumber(dep.versionSpecifier);
+      if (currentVersion && currentVersion !== versionInfo.latestCompatible) {
         updatesAvailable++;
       }
     }

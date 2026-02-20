@@ -54,14 +54,59 @@ export function compareVersions(a: string, b: string): number {
         if (numA > numB) {return 1;}
     }
     
-    // If numeric parts are equal, pre-release versions are less than release
-    const aIsPrerelease = isPrerelease(a);
-    const bIsPrerelease = isPrerelease(b);
+    // If numeric parts are equal, compare based on pre-release/post-release status
+    // Priorities: dev < alpha < beta < rc < final < post
+    const infoA = getPrereleaseInfo(a);
+    const infoB = getPrereleaseInfo(b);
     
-    if (aIsPrerelease && !bIsPrerelease) {return -1;}
-    if (!aIsPrerelease && bIsPrerelease) {return 1;}
+    if (infoA.type !== infoB.type) {
+        return infoA.type < infoB.type ? -1 : 1;
+    }
+
+    if (infoA.number !== infoB.number) {
+        return infoA.number < infoB.number ? -1 : 1;
+    }
     
     return 0;
+}
+
+/**
+ * Extract pre-release information from version string
+ * Returns type (0-5) and number for comparison
+ */
+function getPrereleaseInfo(version: string): { type: number, number: number } {
+    const lower = version.toLowerCase();
+
+    // Default to final release (type 4)
+    let type = 4;
+    let num = 0;
+
+    // Check types in order of precedence or specific matching
+    // Order: dev (0) < alpha (1) < beta (2) < rc (3) < final (4) < post (5)
+
+    if (lower.includes('post')) {
+        type = 5;
+        const match = lower.match(/post\.?(\d*)/);
+        num = match && match[1] ? parseInt(match[1], 10) : 0;
+    } else if (lower.includes('dev')) {
+        type = 0;
+        const match = lower.match(/dev\.?(\d*)/);
+        num = match && match[1] ? parseInt(match[1], 10) : 0;
+    } else if (lower.match(/(?:^|[.\d\-_])(a|alpha)\.?(\d*)/)) {
+        type = 1;
+        const match = lower.match(/(?:^|[.\d\-_])(a|alpha)\.?(\d*)/);
+        num = match && match[2] ? parseInt(match[2], 10) : 0;
+    } else if (lower.match(/(?:^|[.\d\-_])(b|beta)\.?(\d*)/)) {
+        type = 2;
+        const match = lower.match(/(?:^|[.\d\-_])(b|beta)\.?(\d*)/);
+        num = match && match[2] ? parseInt(match[2], 10) : 0;
+    } else if (lower.match(/(?:^|[.\d\-_])(rc|pre|c)\.?(\d*)/)) {
+        type = 3;
+        const match = lower.match(/(?:^|[.\d\-_])(rc|pre|c)\.?(\d*)/);
+        num = match && match[2] ? parseInt(match[2], 10) : 0;
+    }
+
+    return { type, number: num };
 }
 
 /**

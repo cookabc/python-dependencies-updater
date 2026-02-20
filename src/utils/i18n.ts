@@ -184,8 +184,19 @@ const messages: Record<string, Messages> = {
     }
 };
 
-function getLocale(): string {
-    const locale = vscode.env.language.toLowerCase();
+export function getLocale(overrideLanguage?: string): string {
+    let locale = overrideLanguage;
+
+    if (!locale) {
+        try {
+            locale = vscode.env.language;
+        } catch (e) {
+            // vscode module might not be available in tests
+            locale = 'en';
+        }
+    }
+
+    locale = (locale || 'en').toLowerCase();
 
     // Handle specific locales
     if (messages[locale]) {
@@ -196,6 +207,11 @@ function getLocale(): string {
     const language = locale.split('-')[0];
     if (language === 'zh') {
         return locale.includes('tw') || locale.includes('hk') ? 'zh-tw' : 'zh-cn';
+    }
+
+    // Generic fallback to language family if available (e.g. fr-ca -> fr)
+    if (messages[language]) {
+        return language;
     }
 
     // Fallback to English
