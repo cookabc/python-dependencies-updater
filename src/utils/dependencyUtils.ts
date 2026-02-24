@@ -74,9 +74,11 @@ export function buildVersionReplacement(
  */
 export function extractVersionNumber(specifier: string): string {
     if (!specifier) { return ''; }
-    // Remove operators at start
-    let clean = specifier.replace(/^[=<>!~\^]+/, '');
     // Remove quotes
-    clean = clean.replace(/["']/g, '');
+    let clean = specifier.replace(/["']/g, '');
+    // Trim to remove leading/trailing whitespace
+    clean = clean.trim();
+    // Remove operators at start
+    clean = clean.replace(/^[=<>!~\^]+/, '');
     return clean.trim();
 }

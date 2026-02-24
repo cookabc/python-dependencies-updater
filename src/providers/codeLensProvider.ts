@@ -10,6 +10,7 @@ import {
 } from "../core/unifiedParser";
 import { getLatestCompatible } from "./versionService";
 import { getConfig } from "../utils/configuration";
+import { extractVersionNumber } from "../utils/dependencyUtils";
 import { analyzeVersionUpdate } from "../core/versionAnalyzer";
 import { t } from "../utils/i18n";
 import { Logger } from "../utils/logger";
@@ -151,8 +152,7 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
       };
     } else {
       const versionInfo = cached.versionInfo!;
-      const versionWithoutOperator = dep.versionSpecifier.replace(/^[=<>!~\^]+/, "");
-      const currentVersion = versionWithoutOperator.replace(/["']/g, "").trim();
+      const currentVersion = extractVersionNumber(dep.versionSpecifier);
       const latestVersion = versionInfo.latestCompatible!;
 
       if (currentVersion === latestVersion) {
