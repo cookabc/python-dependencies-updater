@@ -43,6 +43,11 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 
   // Cache for version info: packageName -> VersionCacheEntry
   private versionCache: Map<string, VersionCacheEntry> = new Map();
+  // Cache for parsed dependencies: document URI -> { version, dependencies }
+  private dependencyCache: Map<
+    string,
+    { version: number; dependencies: AnyDependency[] }
+  > = new Map();
   // Track pending fetches to avoid duplicate requests
   private pendingFetches: Set<string> = new Set();
 
@@ -52,6 +57,7 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 
   public clearCache(): void {
     this.versionCache.clear();
+    this.dependencyCache.clear();
     this.pendingFetches.clear();
   }
 
@@ -70,9 +76,21 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
       return [];
     }
 
-    const fileName = document.fileName;
-    const content = document.getText();
-    const dependencies = parseDependencies(fileName, content);
+    const cacheKey = document.uri.toString();
+    const cached = this.dependencyCache.get(cacheKey);
+
+    let dependencies: AnyDependency[];
+    if (cached && cached.version === document.version) {
+      dependencies = cached.dependencies;
+    } else {
+      const fileName = document.fileName;
+      const content = document.getText();
+      dependencies = parseDependencies(fileName, content);
+      this.dependencyCache.set(cacheKey, {
+        version: document.version,
+        dependencies,
+      });
+    }
 
     const codeLenses: vscode.CodeLens[] = [];
     for (const dep of dependencies) {
