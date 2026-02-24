@@ -56,13 +56,14 @@ export class PyDepsHoverProvider implements vscode.HoverProvider {
       }
 
       const markdown = new vscode.MarkdownString();
-      markdown.isTrusted = true;
-      markdown.supportHtml = true;
+      markdown.isTrusted = false;
+      markdown.supportHtml = false;
 
       markdown.appendMarkdown(`### ${dep.packageName}\n\n`);
 
       if (versionInfo.summary) {
-        markdown.appendMarkdown(`${versionInfo.summary}\n\n`);
+        markdown.appendText(versionInfo.summary);
+        markdown.appendMarkdown("\n\n");
       }
 
       if (versionInfo.latestCompatible) {
