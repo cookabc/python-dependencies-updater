@@ -3,23 +3,27 @@
  */
 
 import type { VersionAnalysis } from '../types';
+import { parseVersion } from './versionResolver';
 
 /**
  * Analyze version difference and risk level
  */
 export function analyzeVersionUpdate(current: string, latest: string): VersionAnalysis {
-    const currentParts = parseVersionParts(current);
-    const latestParts = parseVersionParts(latest);
+    const currentParts = parseVersion(current);
+    const latestParts = parseVersion(latest);
     
     let updateType: 'patch' | 'minor' | 'major' = 'patch';
     let isBreakingChange = false;
     let riskLevel: 'low' | 'medium' | 'high' = 'low';
     
-    if (currentParts.major !== latestParts.major) {
+    const [currentMajor, currentMinor] = currentParts;
+    const [latestMajor, latestMinor] = latestParts;
+
+    if (currentMajor !== latestMajor) {
         updateType = 'major';
         isBreakingChange = true;
         riskLevel = 'high';
-    } else if (currentParts.minor !== latestParts.minor) {
+    } else if (currentMinor !== latestMinor) {
         updateType = 'minor';
         riskLevel = 'medium';
     } else {
@@ -33,16 +37,5 @@ export function analyzeVersionUpdate(current: string, latest: string): VersionAn
         updateType,
         isBreakingChange,
         riskLevel
-    };
-}
-
-function parseVersionParts(version: string): { major: number; minor: number; patch: number } {
-    const cleanVersion = version.replace(/[^\d\.]/g, '');
-    const parts = cleanVersion.split('.').map(p => parseInt(p, 10) || 0);
-    
-    return {
-        major: parts[0] || 0,
-        minor: parts[1] || 0,
-        patch: parts[2] || 0
     };
 }
