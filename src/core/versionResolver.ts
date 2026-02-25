@@ -8,6 +8,14 @@ import type { VersionConstraint, ResolveResult } from '../types';
 // Pre-release identifiers
 const PRERELEASE_PATTERNS = ['a', 'alpha', 'b', 'beta', 'rc', 'dev', 'pre', 'post'];
 
+// Pre-compiled regexes for performance
+const VERSION_CLEAN_REGEX = /[a-zA-Z].*/g;
+const POST_REGEX = /post\.?(\d*)/;
+const DEV_REGEX = /dev\.?(\d*)/;
+const ALPHA_REGEX = /(?:^|[.\d\-_])(a|alpha)\.?(\d*)/;
+const BETA_REGEX = /(?:^|[.\d\-_])(b|beta)\.?(\d*)/;
+const RC_REGEX = /(?:^|[.\d\-_])(rc|pre|c)\.?(\d*)/;
+
 /**
  * Check if a version string is a pre-release version
  */
@@ -22,7 +30,7 @@ export function isPrerelease(version: string): boolean {
  */
 export function parseVersion(version: string): number[] {
     // Remove any pre-release suffix for numeric comparison
-    const cleanVersion = version.replace(/[a-zA-Z].*/g, '');
+    const cleanVersion = version.replace(VERSION_CLEAN_REGEX, '');
     const parts = cleanVersion.split('.').map(p => {
         const num = parseInt(p, 10);
         return isNaN(num) ? 0 : num;
@@ -77,36 +85,39 @@ export function compareVersions(a: string, b: string): number {
 function getPrereleaseInfo(version: string): { type: number, number: number } {
     const lower = version.toLowerCase();
 
-    // Default to final release (type 4)
-    let type = 4;
-    let num = 0;
-
     // Check types in order of precedence or specific matching
     // Order: dev (0) < alpha (1) < beta (2) < rc (3) < final (4) < post (5)
 
     if (lower.includes('post')) {
-        type = 5;
-        const match = lower.match(/post\.?(\d*)/);
-        num = match && match[1] ? parseInt(match[1], 10) : 0;
-    } else if (lower.includes('dev')) {
-        type = 0;
-        const match = lower.match(/dev\.?(\d*)/);
-        num = match && match[1] ? parseInt(match[1], 10) : 0;
-    } else if (lower.match(/(?:^|[.\d\-_])(a|alpha)\.?(\d*)/)) {
-        type = 1;
-        const match = lower.match(/(?:^|[.\d\-_])(a|alpha)\.?(\d*)/);
-        num = match && match[2] ? parseInt(match[2], 10) : 0;
-    } else if (lower.match(/(?:^|[.\d\-_])(b|beta)\.?(\d*)/)) {
-        type = 2;
-        const match = lower.match(/(?:^|[.\d\-_])(b|beta)\.?(\d*)/);
-        num = match && match[2] ? parseInt(match[2], 10) : 0;
-    } else if (lower.match(/(?:^|[.\d\-_])(rc|pre|c)\.?(\d*)/)) {
-        type = 3;
-        const match = lower.match(/(?:^|[.\d\-_])(rc|pre|c)\.?(\d*)/);
-        num = match && match[2] ? parseInt(match[2], 10) : 0;
+        const match = lower.match(POST_REGEX);
+        if (match) {
+            return { type: 5, number: match[1] ? parseInt(match[1], 10) : 0 };
+        }
     }
 
-    return { type, number: num };
+    if (lower.includes('dev')) {
+        const match = lower.match(DEV_REGEX);
+        if (match) {
+            return { type: 0, number: match[1] ? parseInt(match[1], 10) : 0 };
+        }
+    }
+
+    let match = lower.match(ALPHA_REGEX);
+    if (match) {
+        return { type: 1, number: match[2] ? parseInt(match[2], 10) : 0 };
+    }
+
+    match = lower.match(BETA_REGEX);
+    if (match) {
+        return { type: 2, number: match[2] ? parseInt(match[2], 10) : 0 };
+    }
+
+    match = lower.match(RC_REGEX);
+    if (match) {
+        return { type: 3, number: match[2] ? parseInt(match[2], 10) : 0 };
+    }
+
+    return { type: 4, number: 0 };
 }
 
 /**
