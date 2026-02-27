@@ -5,6 +5,7 @@
 
 import * as vscode from "vscode";
 import type { ExtensionConfig } from "../types";
+import { validateRegistryUrl } from "./url-validator";
 
 const CONFIG_SECTION = "pyDepsHint";
 
@@ -22,27 +23,6 @@ export function getConfig(): ExtensionConfig {
     supportPyProject: config.get<boolean>("supportPyProject", true),
     registryUrl: validateRegistryUrl(registryUrl),
   };
-}
-
-/**
- * Validates the registry URL to ensure it's a valid web URL
- */
-export function validateRegistryUrl(url: string): string {
-  const defaultUrl = "https://pypi.org";
-  if (!url || typeof url !== "string") {
-    return defaultUrl;
-  }
-
-  try {
-    const parsed = new URL(url);
-    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
-      return url;
-    }
-  } catch {
-    // Fallback to default
-  }
-
-  return defaultUrl;
 }
 
 /**

@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import { validateRegistryUrl } from "../../utils/configuration";
+import { validateRegistryUrl } from "../../utils/url-validator";
 
 describe("Configuration Validation", () => {
   it("should allow valid https URL", () => {

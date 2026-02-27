@@ -1,5 +1,4 @@
 import * as assert from "assert";
-import * as vscode from "vscode";
 import { PyDepsHoverProvider } from "../../providers/hoverProvider";
 
 // Mock version of vscode
@@ -17,23 +16,36 @@ const mockVscode: any = {
   },
   Range: class {
     constructor(
-      public startLine: number,
-      public startChar: number,
-      public endLine: number,
-      public endChar: number,
-    ) {}
+      startLine: number,
+      startChar: number,
+      endLine: number,
+      endChar: number,
+    ) {
+      this.startLine = startLine;
+      this.startChar = startChar;
+      this.endLine = endLine;
+      this.endChar = endChar;
+    }
+    startLine: number;
+    startChar: number;
+    endLine: number;
+    endChar: number;
   },
   Hover: class {
-    constructor(
-      public contents: any,
-      public range: any,
-    ) {}
+    constructor(contents: any, range: any) {
+      this.contents = contents;
+      this.range = range;
+    }
+    contents: any;
+    range: any;
   },
   Position: class {
-    constructor(
-      public line: number,
-      public character: number,
-    ) {}
+    constructor(line: number, character: number) {
+      this.line = line;
+      this.character = character;
+    }
+    line: number;
+    character: number;
   },
   workspace: {
     getConfiguration: () => ({
