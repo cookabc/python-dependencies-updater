@@ -72,8 +72,3 @@ export interface ExtensionConfig {
   supportPyProject: boolean;
   registryUrl: string;
 }
-
-export interface FileType {
-  type: "requirements" | "pyproject";
-  languageId: "pip-requirements" | "toml";
-}

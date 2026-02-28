@@ -19,6 +19,8 @@ import {
     buildVersionReplacement,
     extractVersionNumber
 } from "./utils/dependencyUtils";
+import type { VersionAnalysis } from "./types";
+import type { AnyDependency } from "./core/unifiedParser";
 
 const DEBOUNCE_DELAY = 300;
 let debounceTimer: NodeJS.Timeout | undefined;
@@ -102,10 +104,10 @@ export function activate(context: vscode.ExtensionContext): void {
       const edit = new vscode.WorkspaceEdit();
       let safeUpdates = 0;
       let riskyUpdates: Array<{
-        dep: any;
+        dep: AnyDependency;
         currentVersion: string;
         newVersion: string;
-        analysis: any;
+        analysis: VersionAnalysis;
       }> = [];
 
       // First pass: identify safe and risky updates with progress
@@ -288,7 +290,7 @@ export function activate(context: vscode.ExtensionContext): void {
     { language: "toml", scheme: "file" },
   ];
 
-  const codeLensProvider = new PyDepsCodeLensProvider();
+  const codeLensProvider = new PyDepsCodeLensProvider(statusBar);
   const codeLensDisposable = vscode.languages.registerCodeLensProvider(
     selector,
     codeLensProvider,
@@ -313,11 +315,8 @@ export function activate(context: vscode.ExtensionContext): void {
       }
 
       debounceTimer = setTimeout(async () => {
-        // Refresh CodeLens
+        // Refresh CodeLens (status bar is updated by the CodeLens provider)
         codeLensProvider.refresh();
-
-        // Update status bar
-        await updateStatusBar(event.document, statusBar);
       }, DEBOUNCE_DELAY);
     }
   });
@@ -343,46 +342,4 @@ export function deactivate(): void {
   cacheManager.clear();
 }
 
-// Helper function to update status bar
-async function updateStatusBar(
-  document: vscode.TextDocument,
-  statusBar: StatusBarManager,
-) {
-  const config = getConfig();
-  if (!config.enabled) {
-    statusBar.hide();
-    return;
-  }
 
-  const deps = parseDependencies(document.fileName, document.getText());
-  let updatesAvailable = 0;
-
-  const results = await Promise.all(
-    deps.map(async (dep) => {
-      try {
-        const versionInfo = await getLatestCompatible(
-          dep.packageName,
-          "",
-          config.showPrerelease,
-          config.cacheTTLMinutes,
-          config.registryUrl,
-        );
-        return { dep, versionInfo };
-      } catch {
-        return null;
-      }
-    }),
-  );
-
-  for (const result of results) {
-    if (result && result.versionInfo.latestCompatible) {
-      const { dep, versionInfo } = result;
-      const currentVersion = extractVersionNumber(dep.versionSpecifier);
-      if (currentVersion && currentVersion !== versionInfo.latestCompatible) {
-        updatesAvailable++;
-      }
-    }
-  }
-
-  statusBar.updateStatus(updatesAvailable, deps.length);
-}

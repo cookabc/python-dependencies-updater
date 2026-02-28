@@ -10,6 +10,7 @@ export class CacheManager {
     private cache: Map<string, CacheEntry<PackageVersions>> = new Map();
     private memento?: vscode.Memento;
     private readonly STORAGE_KEY = 'py-deps-updater-cache';
+    private saveTimeout: ReturnType<typeof setTimeout> | undefined;
     
     constructor(memento?: vscode.Memento) {
         this.memento = memento;
@@ -17,7 +18,7 @@ export class CacheManager {
     }
 
     private loadFromStorage(): void {
-        if (!this.memento) return;
+        if (!this.memento) {return;}
         const stored = this.memento.get<Record<string, CacheEntry<PackageVersions>>>(this.STORAGE_KEY);
         if (stored) {
             for (const [key, entry] of Object.entries(stored)) {
@@ -27,12 +28,22 @@ export class CacheManager {
     }
 
     private saveToStorage(): void {
-        if (!this.memento) return;
+        if (!this.memento) {return;}
         const storageObj: Record<string, CacheEntry<PackageVersions>> = {};
         this.cache.forEach((value, key) => {
             storageObj[key] = value;
         });
         this.memento.update(this.STORAGE_KEY, storageObj);
+    }
+
+    private debouncedSave(): void {
+        if (this.saveTimeout) {
+            clearTimeout(this.saveTimeout);
+        }
+        this.saveTimeout = setTimeout(() => {
+            this.saveToStorage();
+            this.saveTimeout = undefined;
+        }, 1000);
     }
 
     /**
@@ -48,7 +59,7 @@ export class CacheManager {
         
         if (this.isExpired(entry, ttlMinutes)) {
             this.cache.delete(key.toLowerCase());
-            this.saveToStorage();
+            this.debouncedSave();
             return null;
         }
         
@@ -63,7 +74,7 @@ export class CacheManager {
             data,
             timestamp: Date.now()
         });
-        this.saveToStorage();
+        this.debouncedSave();
     }
     
     /**
@@ -79,6 +90,10 @@ export class CacheManager {
      */
     clear(): void {
         this.cache.clear();
+        if (this.saveTimeout) {
+            clearTimeout(this.saveTimeout);
+            this.saveTimeout = undefined;
+        }
         if (this.memento) {
             this.memento.update(this.STORAGE_KEY, undefined);
         }

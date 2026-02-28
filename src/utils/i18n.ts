@@ -19,6 +19,10 @@ interface Messages {
     updateSafeOnly: string;
     updateAllRisky: string;
     majorFound: string;
+    statusBarUpToDate: string;
+    statusBarUpdatesAvailable: string;
+    statusBarTooltipUpToDate: string;
+    statusBarTooltipUpdates: string;
 }
 
 const messages: Record<string, Messages> = {
@@ -36,7 +40,11 @@ const messages: Record<string, Messages> = {
         updateAnyway: 'Update Anyway',
         updateSafeOnly: 'Update Safe Only',
         updateAllRisky: 'Update All (Including Risky)',
-        majorFound: 'Found {0} major version update(s) that may include breaking changes:'
+        majorFound: 'Found {0} major version update(s) that may include breaking changes:',
+        statusBarUpToDate: '{0} packages up to date',
+        statusBarUpdatesAvailable: '{0} updates available',
+        statusBarTooltipUpToDate: 'All packages are up to date',
+        statusBarTooltipUpdates: '{0} of {1} packages have updates available. Click to update all.'
     },
     'zh-cn': {
         updateTo: '更新到',
@@ -52,7 +60,11 @@ const messages: Record<string, Messages> = {
         updateAnyway: '仍然更新',
         updateSafeOnly: '仅更新安全版本',
         updateAllRisky: '全部更新 (包含风险)',
-        majorFound: '发现 {0} 个重大版本更新，可能包含破坏性变更：'
+        majorFound: '发现 {0} 个重大版本更新，可能包含破坏性变更：',
+        statusBarUpToDate: '{0} 个包已是最新',
+        statusBarUpdatesAvailable: '{0} 个更新可用',
+        statusBarTooltipUpToDate: '所有包都已是最新',
+        statusBarTooltipUpdates: '{1} 个包中有 {0} 个有更新可用。点击全部更新。'
     },
     'zh-tw': {
         updateTo: '更新到',
@@ -68,7 +80,11 @@ const messages: Record<string, Messages> = {
         updateAnyway: '仍然更新',
         updateSafeOnly: '僅更新安全版本',
         updateAllRisky: '全部更新 (包含風險)',
-        majorFound: '發現 {0} 個重大版本更新，可能包含破壞性變更：'
+        majorFound: '發現 {0} 個重大版本更新，可能包含破壞性變更：',
+        statusBarUpToDate: '{0} 個套件已是最新',
+        statusBarUpdatesAvailable: '{0} 個更新可用',
+        statusBarTooltipUpToDate: '所有套件都已是最新',
+        statusBarTooltipUpdates: '{1} 個套件中有 {0} 個有更新可用。點擊全部更新。'
     },
     'ja': {
         updateTo: 'アップデート',
@@ -84,7 +100,11 @@ const messages: Record<string, Messages> = {
         updateAnyway: 'とにかく更新',
         updateSafeOnly: '安全な更新のみ',
         updateAllRisky: 'すべて更新 (リスクあり)',
-        majorFound: '{0} 個のメジャーアップデートが見つかりました。破壊的な変更が含まれている可能性があります：'
+        majorFound: '{0} 個のメジャーアップデートが見つかりました。破壊的な変更が含まれている可能性があります：',
+        statusBarUpToDate: '{0} パッケージは最新です',
+        statusBarUpdatesAvailable: '{0} 件の更新があります',
+        statusBarTooltipUpToDate: 'すべてのパッケージが最新です',
+        statusBarTooltipUpdates: '{1} パッケージ中 {0} 件の更新があります。クリックして全て更新。'
     },
     'ko': {
         updateTo: '업데이트',
@@ -100,7 +120,11 @@ const messages: Record<string, Messages> = {
         updateAnyway: '그래도 업데이트',
         updateSafeOnly: '안전한 업데이트만',
         updateAllRisky: '모두 업데이트 (위험 포함)',
-        majorFound: '브레이킹 체인지가 포함될 수 있는 {0}개의 메이저 업데이트를 발견했습니다:'
+        majorFound: '브레이킹 체인지가 포함될 수 있는 {0}개의 메이저 업데이트를 발견했습니다:',
+        statusBarUpToDate: '{0}개 패키지 최신 상태',
+        statusBarUpdatesAvailable: '{0}개 업데이트 가능',
+        statusBarTooltipUpToDate: '모든 패키지가 최신 상태입니다',
+        statusBarTooltipUpdates: '{1}개 패키지 중 {0}개 업데이트 가능. 클릭하여 모두 업데이트.'
     },
     'fr': {
         updateTo: 'Mettre à jour vers',
@@ -116,7 +140,11 @@ const messages: Record<string, Messages> = {
         updateAnyway: 'Mettre à jour quand même',
         updateSafeOnly: 'Uniquement les mises à jour sûres',
         updateAllRisky: 'Tout mettre à jour (y compris les risques)',
-        majorFound: 'Trouvé {0} mise(s) à jour majeure(s) pouvant inclure des changements cassants :'
+        majorFound: 'Trouvé {0} mise(s) à jour majeure(s) pouvant inclure des changements cassants :',
+        statusBarUpToDate: '{0} paquets à jour',
+        statusBarUpdatesAvailable: '{0} mises à jour disponibles',
+        statusBarTooltipUpToDate: 'Tous les paquets sont à jour',
+        statusBarTooltipUpdates: '{0} sur {1} paquets ont des mises à jour disponibles. Cliquez pour tout mettre à jour.'
     },
     'de': {
         updateTo: 'Aktualisieren auf',
@@ -132,7 +160,11 @@ const messages: Record<string, Messages> = {
         updateAnyway: 'Trotzdem aktualisieren',
         updateSafeOnly: 'Nur sichere Updates',
         updateAllRisky: 'Alle aktualisieren (inklusive Risiko)',
-        majorFound: '{0} Major-Updates gefunden, die bahnbrechende Änderungen enthalten können:'
+        majorFound: '{0} Major-Updates gefunden, die bahnbrechende Änderungen enthalten können:',
+        statusBarUpToDate: '{0} Pakete sind aktuell',
+        statusBarUpdatesAvailable: '{0} Updates verfügbar',
+        statusBarTooltipUpToDate: 'Alle Pakete sind aktuell',
+        statusBarTooltipUpdates: '{0} von {1} Paketen haben Updates. Klicken Sie, um alle zu aktualisieren.'
     },
     'it': {
         updateTo: 'Aggiorna a',
@@ -148,7 +180,11 @@ const messages: Record<string, Messages> = {
         updateAnyway: 'Aggiorna comunque',
         updateSafeOnly: 'Solo aggiornamenti sicuri',
         updateAllRisky: 'Aggiorna tutto (inclusi rischi)',
-        majorFound: 'Trovati {0} aggiornamenti principali che potrebbero includere modifiche distruttive:'
+        majorFound: 'Trovati {0} aggiornamenti principali che potrebbero includere modifiche distruttive:',
+        statusBarUpToDate: '{0} pacchetti aggiornati',
+        statusBarUpdatesAvailable: '{0} aggiornamenti disponibili',
+        statusBarTooltipUpToDate: 'Tutti i pacchetti sono aggiornati',
+        statusBarTooltipUpdates: '{0} di {1} pacchetti hanno aggiornamenti disponibili. Clicca per aggiornare tutto.'
     },
     'es': {
         updateTo: 'Actualizar a',
@@ -164,7 +200,11 @@ const messages: Record<string, Messages> = {
         updateAnyway: 'Actualizar de todos modos',
         updateSafeOnly: 'Solo actualizaciones seguras',
         updateAllRisky: 'Actualizar todo (incluyendo riesgos)',
-        majorFound: 'Se encontraron {0} actualizaciones principales que pueden incluir cambios disruptivos:'
+        majorFound: 'Se encontraron {0} actualizaciones principales que pueden incluir cambios disruptivos:',
+        statusBarUpToDate: '{0} paquetes actualizados',
+        statusBarUpdatesAvailable: '{0} actualizaciones disponibles',
+        statusBarTooltipUpToDate: 'Todos los paquetes están actualizados',
+        statusBarTooltipUpdates: '{0} de {1} paquetes tienen actualizaciones disponibles. Haga clic para actualizar todo.'
     },
     'ru': {
         updateTo: 'Обновить до',
@@ -180,7 +220,11 @@ const messages: Record<string, Messages> = {
         updateAnyway: 'Обновить в любом случае',
         updateSafeOnly: 'Только безопасные обновления',
         updateAllRisky: 'Обновить все (включая рискованные)',
-        majorFound: 'Найдено {0} мажорных обновлений, которые могут содержать критические изменения:'
+        majorFound: 'Найдено {0} мажорных обновлений, которые могут содержать критические изменения:',
+        statusBarUpToDate: '{0} пакетов обновлено',
+        statusBarUpdatesAvailable: '{0} обновлений доступно',
+        statusBarTooltipUpToDate: 'Все пакеты актуальны',
+        statusBarTooltipUpdates: '{0} из {1} пакетов имеют обновления. Нажмите для обновления всех.'
     }
 };
 
@@ -218,7 +262,7 @@ export function getLocale(overrideLanguage?: string): string {
     return 'en';
 }
 
-export function t(key: keyof Messages, ...args: any[]): string {
+export function t(key: keyof Messages, ...args: (string | number)[]): string {
     const locale = getLocale();
     let msg = messages[locale]?.[key] || messages['en'][key];
     if (args.length > 0) {

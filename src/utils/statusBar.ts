@@ -18,12 +18,12 @@ export class StatusBarManager {
     
     updateStatus(updatesAvailable: number, totalPackages: number) {
         if (updatesAvailable === 0) {
-            this.statusBarItem.text = `$(check) ${totalPackages} packages up to date`;
-            this.statusBarItem.tooltip = 'All packages are up to date';
+            this.statusBarItem.text = `$(check) ${t('statusBarUpToDate', totalPackages)}`;
+            this.statusBarItem.tooltip = t('statusBarTooltipUpToDate');
             this.statusBarItem.backgroundColor = undefined;
         } else {
-            this.statusBarItem.text = `$(warning) ${updatesAvailable} updates available`;
-            this.statusBarItem.tooltip = `${updatesAvailable} of ${totalPackages} packages have updates available. Click to update all.`;
+            this.statusBarItem.text = `$(warning) ${t('statusBarUpdatesAvailable', updatesAvailable)}`;
+            this.statusBarItem.tooltip = t('statusBarTooltipUpdates', updatesAvailable, totalPackages);
             this.statusBarItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
         }
         

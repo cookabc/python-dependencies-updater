@@ -6,7 +6,7 @@ This is a **VS Code Extension** that provides smart version management for Pytho
 
 - **Extension Name**: Python Dependencies Updater
 - **Publisher**: cookabc
-- **Version**: 1.1.0
+- **Version**: 1.5.0
 - **License**: MIT
 - **Repository**: https://github.com/cookabc/python-dependencies-updater
 

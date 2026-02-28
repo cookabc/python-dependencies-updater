@@ -15,6 +15,7 @@ import { analyzeVersionUpdate } from "../core/versionAnalyzer";
 import { t } from "../utils/i18n";
 import { Logger } from "../utils/logger";
 import type { VersionInfo } from "../types";
+import { StatusBarManager } from "../utils/statusBar";
 
 interface VersionCacheEntry {
   status: "loading" | "success" | "error";
@@ -50,6 +51,12 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
   > = new Map();
   // Track pending fetches to avoid duplicate requests
   private pendingFetches: Set<string> = new Set();
+  // Optional status bar for update counts
+  private statusBar?: StatusBarManager;
+
+  constructor(statusBar?: StatusBarManager) {
+    this.statusBar = statusBar;
+  }
 
   public refresh(): void {
     this._onDidChangeCodeLenses.fire();
@@ -256,7 +263,38 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
        this.pendingFetches.delete(cacheKey);
        // Trigger refresh to update the CodeLens display
        this._onDidChangeCodeLenses.fire();
+       // Update status bar from cached version data
+       this.updateStatusBar();
      }
+   }
+
+   private updateStatusBar(): void {
+     if (!this.statusBar) {return;}
+
+     let updatesAvailable = 0;
+     let totalChecked = 0;
+
+     for (const entry of this.versionCache.values()) {
+       if (entry.status === "success" && entry.versionInfo?.latestCompatible) {
+         totalChecked++;
+       }
+     }
+
+     // Count updates from the last known dependency set
+     for (const cached of this.dependencyCache.values()) {
+       for (const dep of cached.dependencies) {
+         const cacheKey = dep.packageName.split("[")[0].toLowerCase();
+         const vEntry = this.versionCache.get(cacheKey);
+         if (vEntry?.status === "success" && vEntry.versionInfo?.latestCompatible) {
+           const currentVersion = extractVersionNumber(dep.versionSpecifier);
+           if (currentVersion && currentVersion !== vEntry.versionInfo.latestCompatible) {
+             updatesAvailable++;
+           }
+         }
+       }
+     }
+
+     this.statusBar.updateStatus(updatesAvailable, totalChecked);
    }
  }
 

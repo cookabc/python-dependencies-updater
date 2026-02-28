@@ -2,7 +2,7 @@
   "name": "python-dependencies-updater",
   "displayName": "Python Dependencies Updater",
   "description": "Smart version management for Python requirements.txt and pyproject.toml files with one-click updates and breaking change detection",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "publisher": "cookabc",
   "license": "MIT",
   "icon": "icon.png",
@@ -35,6 +35,12 @@
     "package",
     "manager",
     "upgrade"
+  ],
+  "activationEvents": [
+    "onLanguage:pip-requirements",
+    "onLanguage:toml",
+    "workspaceContains:requirements.txt",
+    "workspaceContains:pyproject.toml"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -145,7 +151,7 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile && npm run esbuild-base -- --sourcemap",
-    "test": "mocha --require ts-node/register 'src/test/unit/configuration.test.ts' 'src/test/unit/versionResolver.test.ts' 'src/test/unit/versionAnalyzer.test.ts' 'src/test/unit/dependencyUtils.test.ts' 'src/test/unit/requirementsParser.test.ts' 'src/test/unit/basic.test.ts' 'src/test/unit/pyprojectParser.test.ts' 'src/test/unit/parser.test.ts'",
+    "test": "mocha --require ts-node/register --require src/test/register.ts 'src/test/unit/**/*.test.ts'",
     "lint": "eslint src --ext ts",
     "publish:vsx": "./publish.sh vsx",
     "publish:ovsx": "./publish.sh ovsx",
