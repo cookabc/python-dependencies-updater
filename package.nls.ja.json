@@ -1,0 +1,14 @@
+{
+  "command.updateVersion": "パッケージバージョンを更新",
+  "command.updateAllVersions": "すべてのパッケージを最新版に更新",
+  "command.showUpToDate": "パッケージの最新状態を表示",
+  "command.openOnPyPI": "PyPI で開く",
+  "colors.upToDate": "最新パッケージの色",
+  "colors.updateAvailable": "更新可能なパッケージの色",
+  "config.title": "Python 依存関係ヒント",
+  "config.enabled.description": "拡張機能の有効/無効を切り替え",
+  "config.showPrerelease.description": "バージョンヒントにプレリリース版を含める",
+  "config.cacheTTLMinutes.description": "PyPI バージョンデータのキャッシュ TTL (分)",
+  "config.supportPyProject.description": "pyproject.toml サポートの有効/無効を切り替え",
+  "config.registryUrl.description": "PyPI レジストリ URL（Artifactory や devpi などのプライベートミラー用）"
+}

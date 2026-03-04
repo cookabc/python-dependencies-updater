@@ -1,4 +1,14 @@
 {
   "command.updateVersion": "更新包版本",
-  "command.updateAllVersions": "更新所有包到最新版本"
+  "command.updateAllVersions": "更新所有包到最新版本",
+  "command.showUpToDate": "显示包更新状态",
+  "command.openOnPyPI": "在 PyPI 中打开",
+  "colors.upToDate": "已是最新版本的包的颜色",
+  "colors.updateAvailable": "有可用更新的包的颜色",
+  "config.title": "Python 依赖提示",
+  "config.enabled.description": "启用或禁用扩展",
+  "config.showPrerelease.description": "在版本提示中包含预发布版本",
+  "config.cacheTTLMinutes.description": "PyPI 版本数据的缓存 TTL（分钟）",
+  "config.supportPyProject.description": "启用或禁用 pyproject.toml 支持",
+  "config.registryUrl.description": "PyPI 注册表 URL（用于 Artifactory 或 devpi 等私有镜像）"
 }

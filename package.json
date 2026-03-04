@@ -45,7 +45,7 @@
     "colors": [
       {
         "id": "pyDepsHint.upToDate",
-        "description": "Color for up-to-date packages",
+        "description": "%colors.upToDate%",
         "defaults": {
           "dark": "#4CAF50",
           "light": "#2E7D32",
@@ -54,7 +54,7 @@
       },
       {
         "id": "pyDepsHint.updateAvailable",
-        "description": "Color for packages with updates available",
+        "description": "%colors.updateAvailable%",
         "defaults": {
           "dark": "#FF9800",
           "light": "#F57C00",
@@ -73,40 +73,40 @@
       },
       {
         "command": "pyDepsHint.showUpToDate",
-        "title": "Show Package Up-to-date Status"
+        "title": "%command.showUpToDate%"
       },
       {
         "command": "pyDepsHint.openOnPyPI",
-        "title": "Open Package on PyPI"
+        "title": "%command.openOnPyPI%"
       }
     ],
     "configuration": {
-      "title": "Python Dependencies Hint",
+      "title": "%config.title%",
       "properties": {
         "pyDepsHint.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Enable or disable the extension"
+          "description": "%config.enabled.description%"
         },
         "pyDepsHint.showPrerelease": {
           "type": "boolean",
           "default": false,
-          "description": "Include pre-release versions in version hints"
+          "description": "%config.showPrerelease.description%"
         },
         "pyDepsHint.cacheTTLMinutes": {
           "type": "number",
           "default": 60,
-          "description": "Cache TTL in minutes for PyPI version data"
+          "description": "%config.cacheTTLMinutes.description%"
         },
         "pyDepsHint.supportPyProject": {
           "type": "boolean",
           "default": true,
-          "description": "Enable or disable pyproject.toml support"
+          "description": "%config.supportPyProject.description%"
         },
         "pyDepsHint.registryUrl": {
           "type": "string",
           "default": "https://pypi.org",
-          "description": "PyPI registry URL (for private mirrors like Artifactory or devpi)"
+          "description": "%config.registryUrl.description%"
         }
       }
     },

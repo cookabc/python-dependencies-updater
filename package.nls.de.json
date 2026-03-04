@@ -1,0 +1,14 @@
+{
+  "command.updateVersion": "Paketversion aktualisieren",
+  "command.updateAllVersions": "Alle Pakete auf die neueste Version aktualisieren",
+  "command.showUpToDate": "Paket-Aktualisierungsstatus anzeigen",
+  "command.openOnPyPI": "Auf PyPI öffnen",
+  "colors.upToDate": "Farbe für aktuelle Pakete",
+  "colors.updateAvailable": "Farbe für Pakete mit verfügbaren Updates",
+  "config.title": "Python-Abhängigkeitshinweis",
+  "config.enabled.description": "Erweiterung aktivieren oder deaktivieren",
+  "config.showPrerelease.description": "Vorabversionen in Versionshinweisen anzeigen",
+  "config.cacheTTLMinutes.description": "Cache-TTL für PyPI-Versionsdaten (Minuten)",
+  "config.supportPyProject.description": "pyproject.toml-Unterstützung aktivieren oder deaktivieren",
+  "config.registryUrl.description": "PyPI-Registry-URL (für private Spiegel wie Artifactory oder devpi)"
+}

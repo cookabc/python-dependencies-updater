@@ -1,0 +1,14 @@
+{
+  "command.updateVersion": "패키지 버전 업데이트",
+  "command.updateAllVersions": "모든 패키지를 최신 버전으로 업데이트",
+  "command.showUpToDate": "패키지 최신 상태 표시",
+  "command.openOnPyPI": "PyPI에서 열기",
+  "colors.upToDate": "최신 상태 패키지 색상",
+  "colors.updateAvailable": "업데이트 가능한 패키지 색상",
+  "config.title": "Python 의존성 힌트",
+  "config.enabled.description": "확장 기능 활성화 또는 비활성화",
+  "config.showPrerelease.description": "버전 힌트에 프리릴리스 버전 포함",
+  "config.cacheTTLMinutes.description": "PyPI 버전 데이터의 캐시 TTL (분)",
+  "config.supportPyProject.description": "pyproject.toml 지원 활성화 또는 비활성화",
+  "config.registryUrl.description": "PyPI 레지스트리 URL (Artifactory 또는 devpi 등 프라이빗 미러용)"
+}
