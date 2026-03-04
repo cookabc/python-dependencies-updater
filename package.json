@@ -37,8 +37,6 @@
     "upgrade"
   ],
   "activationEvents": [
-    "onLanguage:pip-requirements",
-    "onLanguage:toml",
     "workspaceContains:requirements.txt",
     "workspaceContains:pyproject.toml"
   ],
