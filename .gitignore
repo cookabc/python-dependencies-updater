@@ -39,3 +39,9 @@ coverage/
 
 # Temporary files
 test-manual.js*
+
+# AI tool artifacts
+.claude/
+.jules/
+.cursor/
+.agent/
