@@ -25,6 +25,7 @@ Smart version management for Python requirements.txt and pyproject.toml files wi
 4. Click Install
 
 Or install from command line:
+
 ```bash
 code --install-extension cookabc.python-dependencies-updater
 ```
@@ -55,12 +56,12 @@ code --install-extension cookabc.python-dependencies-updater
 
 ## ⚙️ Configuration
 
-| Setting | Default | Description |
-|---------|---------|-------------|
-| `pyDepsHint.enabled` | `true` | Enable/disable the extension |
-| `pyDepsHint.showPrerelease` | `false` | Include pre-release versions |
-| `pyDepsHint.cacheTTLMinutes` | `60` | Cache TTL in minutes |
-| `pyDepsHint.supportPyProject` | `true` | Enable/disable pyproject.toml support |
+| Setting                       | Default | Description                           |
+| ----------------------------- | ------- | ------------------------------------- |
+| `pyDepsHint.enabled`          | `true`  | Enable/disable the extension          |
+| `pyDepsHint.showPrerelease`   | `false` | Include pre-release versions          |
+| `pyDepsHint.cacheTTLMinutes`  | `60`    | Cache TTL in minutes                  |
+| `pyDepsHint.supportPyProject` | `true`  | Enable/disable pyproject.toml support |
 
 ## 🏗️ Project Structure
 

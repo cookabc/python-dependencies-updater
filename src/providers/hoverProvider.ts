@@ -33,7 +33,10 @@ export class PyDepsHoverProvider implements vscode.HoverProvider {
 
     // Find the dependency at the current position
     const dep = dependencies.find(
-      (d) => d.line === position.line && position.character >= d.startColumn && position.character <= d.endColumn,
+      (d) =>
+        d.line === position.line &&
+        position.character >= d.startColumn &&
+        position.character <= d.endColumn,
     );
 
     if (!dep || token.isCancellationRequested) {
@@ -67,10 +70,12 @@ export class PyDepsHoverProvider implements vscode.HoverProvider {
       }
 
       if (versionInfo.latestCompatible) {
-        markdown.appendMarkdown(`**${t('latest')}:** ${versionInfo.latestCompatible}\n\n`);
+        markdown.appendMarkdown(
+          `**${t("latest")}:** ${versionInfo.latestCompatible}\n\n`,
+        );
       }
 
-      const baseUrl = config.registryUrl.replace(/\/+$/, '');
+      const baseUrl = config.registryUrl.replace(/\/+$/, "");
       markdown.appendMarkdown(
         `[Open on PyPI](${baseUrl}/project/${encodeURIComponent(packageNameWithoutExtras)}/)`,
       );

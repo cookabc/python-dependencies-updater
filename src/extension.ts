@@ -15,9 +15,9 @@ import { StatusBarManager } from "./utils/statusBar";
 import { t } from "./utils/i18n";
 import { Logger } from "./utils/logger";
 import {
-    extractVersionFromLine,
-    buildVersionReplacement,
-    extractVersionNumber
+  extractVersionFromLine,
+  buildVersionReplacement,
+  extractVersionNumber,
 } from "./utils/dependencyUtils";
 import type { VersionAnalysis } from "./types";
 import type { AnyDependency } from "./core/unifiedParser";
@@ -72,9 +72,14 @@ export function activate(context: vscode.ExtensionContext): void {
           lineText,
           newVersion,
           isTOML,
-          match
+          match,
         );
-        const range = new vscode.Range(line, match.startIndex, line, match.endIndex);
+        const range = new vscode.Range(
+          line,
+          match.startIndex,
+          line,
+          match.endIndex,
+        );
 
         const edit = new vscode.WorkspaceEdit();
         edit.replace(document.uri, range, replacement);
@@ -180,7 +185,7 @@ export function activate(context: vscode.ExtensionContext): void {
                     lineText,
                     newVersion,
                     isTOML,
-                    match
+                    match,
                   );
                   const range = new vscode.Range(
                     dep.line,
@@ -208,7 +213,10 @@ export function activate(context: vscode.ExtensionContext): void {
           .join("\n");
 
         const choice = await vscode.window.showWarningMessage(
-          t("majorFound", riskyUpdates.length) + "\n\n" + riskyList + "\n\nHow would you like to proceed?",
+          t("majorFound", riskyUpdates.length) +
+            "\n\n" +
+            riskyList +
+            "\n\nHow would you like to proceed?",
           { modal: true },
           t("updateSafeOnly"),
           t("updateAllRisky"),
@@ -228,7 +236,7 @@ export function activate(context: vscode.ExtensionContext): void {
                 lineText,
                 update.newVersion,
                 isTOML,
-                match
+                match,
               );
               const range = new vscode.Range(
                 update.dep.line,
@@ -276,7 +284,7 @@ export function activate(context: vscode.ExtensionContext): void {
     "pyDepsHint.openOnPyPI",
     (packageName: string) => {
       const config = getConfig();
-      const baseUrl = config.registryUrl.replace(/\/+$/, '');
+      const baseUrl = config.registryUrl.replace(/\/+$/, "");
       const url = `${baseUrl}/project/${encodeURIComponent(packageName)}/`;
       vscode.env.openExternal(vscode.Uri.parse(url));
     },
@@ -341,5 +349,3 @@ export function deactivate(): void {
   // Clear cache
   cacheManager.clear();
 }
-
-

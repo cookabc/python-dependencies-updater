@@ -18,9 +18,11 @@ This is a **VS Code Extension** that provides smart version management for Pytho
 - **VS Code Engine**: ^1.85.0
 
 ### Dependencies
+
 - `@iarna/toml` (^2.2.5) - TOML parsing for pyproject.toml files
 
 ### Dev Dependencies
+
 - `typescript` (^5.3.2)
 - `eslint` (^8.54.0) with `@typescript-eslint/*` plugins
 - `mocha` (^10.2.0) + `chai` (^4.3.10) - Unit testing
@@ -80,6 +82,7 @@ src/
 ```
 
 ### Output Structure
+
 ```
 out/                         # Compiled JavaScript (gitignored)
 ├── extension.js             # Main entry point
@@ -94,6 +97,7 @@ out/                         # Compiled JavaScript (gitignored)
 ## Architecture
 
 ### Extension Activation
+
 1. `extension.ts` exports `activate()` and `deactivate()` functions
 2. Registers CodeLens provider for `pip-requirements` and `toml` languages
 3. Registers commands: `updateVersion`, `updateAllVersions`, `showUpToDate`
@@ -101,6 +105,7 @@ out/                         # Compiled JavaScript (gitignored)
 5. Initializes status bar manager
 
 ### Data Flow
+
 1. User opens `requirements.txt` or `pyproject.toml`
 2. `PyDepsCodeLensProvider.provideCodeLenses()` is triggered
 3. `unifiedParser.parseDependencies()` detects file type and parses dependencies
@@ -114,27 +119,33 @@ out/                         # Compiled JavaScript (gitignored)
 ### File Type Support
 
 **requirements.txt**
+
 - Parsed by `parser.ts`
 - Supports: `package==version`, `package>=version`, extras like `package[extra]`
 - Skips: comments, editable installs (`-e`), URLs, local paths
 
 **pyproject.toml**
+
 - Parsed by `pyprojectParser.ts`
 - Supports: `[project]` dependencies, `[project.optional-dependencies]`
 - Text-based parsing for reliability (not using full TOML parser for dependency extraction)
 
 ### Caching Strategy
+
 - In-memory Map with TTL (configurable, default 60 minutes)
 - Keys are lowercase package names
 - Cache is cleared on extension deactivation
 
 ### Concurrency Control
+
 - PyPI client uses `ConcurrencyLimiter` class
 - Max 5 concurrent requests to PyPI API
 - 10-second timeout per request
 
 ### Risk Analysis
+
 Version updates are classified by risk:
+
 - **Patch** (same major.minor): Low risk, green icon
 - **Minor** (same major): Medium risk, blue info icon
 - **Major** (different major): High risk, warning icon with confirmation dialog
@@ -143,16 +154,17 @@ Version updates are classified by risk:
 
 Configuration section: `pyDepsHint`
 
-| Setting | Type | Default | Description |
-|---------|------|---------|-------------|
-| `enabled` | boolean | `true` | Enable/disable the extension |
-| `showPrerelease` | boolean | `false` | Include pre-release versions |
-| `cacheTTLMinutes` | number | `60` | Cache time-to-live in minutes |
-| `supportPyProject` | boolean | `true` | Enable pyproject.toml support |
+| Setting            | Type    | Default | Description                   |
+| ------------------ | ------- | ------- | ----------------------------- |
+| `enabled`          | boolean | `true`  | Enable/disable the extension  |
+| `showPrerelease`   | boolean | `false` | Include pre-release versions  |
+| `cacheTTLMinutes`  | number  | `60`    | Cache time-to-live in minutes |
+| `supportPyProject` | boolean | `true`  | Enable pyproject.toml support |
 
 ## Internationalization
 
 Supported languages (9):
+
 - English (en) - default
 - Simplified Chinese (zh-cn)
 - Traditional Chinese (zh-tw)
@@ -183,21 +195,25 @@ npm test
 ## Code Style Guidelines
 
 ### TypeScript Configuration
+
 - Strict mode enabled
 - Source maps and declaration maps generated
 - Consistent file casing enforced
 - ES Module interop enabled
 
 ### Naming Conventions
+
 - PascalCase for classes and interfaces
 - camelCase for functions and variables
 - Descriptive names with full words
 
 ### Comments
+
 - JSDoc comments for all exported functions
 - Reference to requirement IDs in module headers (e.g., `Validates: Requirements 1.1, 1.2`)
 
 ### Error Handling
+
 - Try-catch blocks for async operations
 - Graceful degradation (skip failed packages rather than fail entire operation)
 - User-friendly error messages via VS Code notifications
@@ -222,6 +238,7 @@ npm test
    ```
 
 ### Required for Publishing
+
 - Azure DevOps account with Marketplace permissions
 - Personal Access Token with Marketplace scope
 - Public GitHub repository matching `package.json` URLs
@@ -229,15 +246,18 @@ npm test
 ## VS Code Contribution Points
 
 ### Commands
+
 - `pyDepsHint.updateVersion` - Update single package
 - `pyDepsHint.updateAllVersions` - Batch update all packages
 - `pyDepsHint.showUpToDate` - No-op for styling up-to-date packages
 
 ### Languages
+
 - `pip-requirements` - requirements.txt files
 - `toml` - pyproject.toml files
 
 ### Colors
+
 - `pyDepsHint.upToDate` - Green for up-to-date packages
 - `pyDepsHint.updateAvailable` - Orange for update available
 

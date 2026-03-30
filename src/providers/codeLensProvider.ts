@@ -4,10 +4,7 @@
  */
 
 import * as vscode from "vscode";
-import {
-  parseDependencies,
-  type AnyDependency,
-} from "../core/unifiedParser";
+import { parseDependencies, type AnyDependency } from "../core/unifiedParser";
 import { getLatestCompatible } from "./versionService";
 import { getConfig } from "../utils/configuration";
 import { extractVersionNumber } from "../utils/dependencyUtils";
@@ -210,91 +207,104 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
     }
 
     return codeLens;
-   }
+  }
 
-   private async fetchVersionAsync(
-     packageName: string,
-     config: ReturnType<typeof getConfig>,
-   ): Promise<void> {
-     const cacheKey = packageName.toLowerCase();
- 
-     // Mark as pending
-     this.pendingFetches.add(cacheKey);
- 
-     // Set loading state
-     this.versionCache.set(cacheKey, {
-       status: "loading",
-       timestamp: Date.now(),
-     });
- 
-     try {
-        Logger.log(`Fetching version for ${packageName}`);
-        const versionInfo = await getLatestCompatible(
-          packageName,
-          "",
-          config.showPrerelease,
-          config.cacheTTLMinutes,
-          config.registryUrl,
-        );
-  
-        Logger.log(`Got version info for ${packageName}: ${JSON.stringify(versionInfo)}`);
-  
-        if (versionInfo.error || !versionInfo.latestCompatible) {
-          this.versionCache.set(cacheKey, {
-            status: "error",
-            versionInfo,
-            timestamp: Date.now(),
-          });
-        } else {
-          this.versionCache.set(cacheKey, {
-            status: "success",
-            versionInfo,
-            timestamp: Date.now(),
-          });
-        }
-      } catch (e) {
-        Logger.error(`Error fetching ${packageName}:`, e);
+  private async fetchVersionAsync(
+    packageName: string,
+    config: ReturnType<typeof getConfig>,
+  ): Promise<void> {
+    const cacheKey = packageName.toLowerCase();
+
+    // Mark as pending
+    this.pendingFetches.add(cacheKey);
+
+    // Set loading state
+    this.versionCache.set(cacheKey, {
+      status: "loading",
+      timestamp: Date.now(),
+    });
+
+    try {
+      Logger.log(`Fetching version for ${packageName}`);
+      const versionInfo = await getLatestCompatible(
+        packageName,
+        "",
+        config.showPrerelease,
+        config.cacheTTLMinutes,
+        config.registryUrl,
+      );
+
+      Logger.log(
+        `Got version info for ${packageName}: ${JSON.stringify(versionInfo)}`,
+      );
+
+      if (versionInfo.error || !versionInfo.latestCompatible) {
         this.versionCache.set(cacheKey, {
           status: "error",
-          versionInfo: { packageName, latestCompatible: null, error: "fetch-error" },
+          versionInfo,
           timestamp: Date.now(),
         });
-      } finally {
-       this.pendingFetches.delete(cacheKey);
-       // Trigger refresh to update the CodeLens display
-       this._onDidChangeCodeLenses.fire();
-       // Update status bar from cached version data
-       this.updateStatusBar();
-     }
-   }
+      } else {
+        this.versionCache.set(cacheKey, {
+          status: "success",
+          versionInfo,
+          timestamp: Date.now(),
+        });
+      }
+    } catch (e) {
+      Logger.error(`Error fetching ${packageName}:`, e);
+      this.versionCache.set(cacheKey, {
+        status: "error",
+        versionInfo: {
+          packageName,
+          latestCompatible: null,
+          error: "fetch-error",
+        },
+        timestamp: Date.now(),
+      });
+    } finally {
+      this.pendingFetches.delete(cacheKey);
+      // Trigger refresh to update the CodeLens display
+      this._onDidChangeCodeLenses.fire();
+      // Update status bar from cached version data
+      this.updateStatusBar();
+    }
+  }
 
-   private updateStatusBar(): void {
-     if (!this.statusBar) {return;}
+  private updateStatusBar(): void {
+    if (!this.statusBar) {
+      return;
+    }
 
-     let updatesAvailable = 0;
-     let totalChecked = 0;
+    let updatesAvailable = 0;
+    let totalChecked = 0;
 
-     for (const entry of this.versionCache.values()) {
-       if (entry.status === "success" && entry.versionInfo?.latestCompatible) {
-         totalChecked++;
-       }
-     }
+    for (const entry of this.versionCache.values()) {
+      if (entry.status === "success" && entry.versionInfo?.latestCompatible) {
+        totalChecked++;
+      }
+    }
 
-     // Count updates from the last known dependency set
-     for (const cached of this.dependencyCache.values()) {
-       for (const dep of cached.dependencies) {
-         const cacheKey = dep.packageName.split("[")[0].toLowerCase();
-         const vEntry = this.versionCache.get(cacheKey);
-         if (vEntry?.status === "success" && vEntry.versionInfo?.latestCompatible) {
-           const currentVersion = extractVersionNumber(dep.versionSpecifier);
-           if (currentVersion && currentVersion !== vEntry.versionInfo.latestCompatible) {
-             updatesAvailable++;
-           }
-         }
-       }
-     }
+    // Count updates from the last known dependency set
+    for (const cached of this.dependencyCache.values()) {
+      for (const dep of cached.dependencies) {
+        const cacheKey = dep.packageName.split("[")[0].toLowerCase();
+        const vEntry = this.versionCache.get(cacheKey);
+        if (
+          vEntry?.status === "success" &&
+          vEntry.versionInfo?.latestCompatible
+        ) {
+          const currentVersion = extractVersionNumber(dep.versionSpecifier);
+          if (
+            currentVersion &&
+            currentVersion !== vEntry.versionInfo.latestCompatible
+          ) {
+            updatesAvailable++;
+          }
+        }
+      }
+    }
 
-     this.statusBar.updateStatus(updatesAvailable, totalChecked);
-   }
- }
-
+    this.statusBar.updateStatus(updatesAvailable, totalChecked);
+  }
+}
