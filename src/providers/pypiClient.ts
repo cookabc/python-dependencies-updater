@@ -7,8 +7,8 @@ import type { PackageVersions, PyPIClientResult } from "../types";
 import { Logger } from "../utils/logger";
 
 interface PyPIResponse {
-  info?: { summary?: string };
-  releases: Record<string, unknown[]>;
+	info?: { summary?: string };
+	releases: Record<string, unknown[]>;
 }
 
 // Concurrency limiter
@@ -19,109 +19,109 @@ let activeRequests = 0;
 const requestQueue: (() => void)[] = [];
 
 async function enqueue(): Promise<void> {
-  if (activeRequests < MAX_CONCURRENT_REQUESTS) {
-    activeRequests++;
-    return Promise.resolve();
-  }
-  return new Promise((resolve) => {
-    requestQueue.push(resolve);
-  });
+	if (activeRequests < MAX_CONCURRENT_REQUESTS) {
+		activeRequests++;
+		return Promise.resolve();
+	}
+	return new Promise((resolve) => {
+		requestQueue.push(resolve);
+	});
 }
 
 function dequeue(): void {
-  activeRequests--;
-  const next = requestQueue.shift();
-  if (next) {
-    activeRequests++;
-    next();
-  }
+	activeRequests--;
+	const next = requestQueue.shift();
+	if (next) {
+		activeRequests++;
+		next();
+	}
 }
 
 async function makeRequest(url: string): Promise<PyPIResponse> {
-  await enqueue();
-  try {
-    return await doMakeRequest(url);
-  } finally {
-    dequeue();
-  }
+	await enqueue();
+	try {
+		return await doMakeRequest(url);
+	} finally {
+		dequeue();
+	}
 }
 
 async function doMakeRequest(url: string): Promise<PyPIResponse> {
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
-  try {
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        Accept: "application/json",
-        "User-Agent": "VSCode-Python-Dependencies-Updater",
-      },
-    });
+	try {
+		const response = await fetch(url, {
+			signal: controller.signal,
+			headers: {
+				Accept: "application/json",
+				"User-Agent": "VSCode-Python-Dependencies-Updater",
+			},
+		});
 
-    if (response.status === 404) {
-      throw new Error("404");
-    }
+		if (response.status === 404) {
+			throw new Error("404");
+		}
 
-    if (!response.ok) {
-      throw new Error(`Request failed with status ${response.status}`);
-    }
+		if (!response.ok) {
+			throw new Error(`Request failed with status ${response.status}`);
+		}
 
-    return (await response.json()) as PyPIResponse;
-  } catch (e: any) {
-    if (e.name === "AbortError") {
-      throw new Error("Timeout");
-    }
-    throw e;
-  } finally {
-    clearTimeout(timeoutId);
-  }
+		return (await response.json()) as PyPIResponse;
+	} catch (e: any) {
+		if (e.name === "AbortError") {
+			throw new Error("Timeout");
+		}
+		throw e;
+	} finally {
+		clearTimeout(timeoutId);
+	}
 }
 
 /**
  * Fetch version data from PyPI for a package
  */
 export async function fetchVersions(
-  packageName: string,
-  registryUrl?: string,
+	packageName: string,
+	registryUrl?: string,
 ): Promise<PyPIClientResult> {
-  Logger.log(`fetchVersions called for ${packageName}`);
+	Logger.log(`fetchVersions called for ${packageName}`);
 
-  try {
-    const baseUrl = (registryUrl || DEFAULT_REGISTRY).replace(/\/+$/, "");
-    const url = `${baseUrl}/pypi/${encodeURIComponent(packageName)}/json`;
+	try {
+		const baseUrl = (registryUrl || DEFAULT_REGISTRY).replace(/\/+$/, "");
+		const url = `${baseUrl}/pypi/${encodeURIComponent(packageName)}/json`;
 
-    const data = await makeRequest(url);
+		const data = await makeRequest(url);
 
-    if (!data.releases || typeof data.releases !== "object") {
-      Logger.error(`Invalid data structure for ${packageName}`);
-      return { success: false, error: "parse-error" };
-    }
+		if (!data.releases || typeof data.releases !== "object") {
+			Logger.error(`Invalid data structure for ${packageName}`);
+			return { success: false, error: "parse-error" };
+		}
 
-    const versions = Object.keys(data.releases);
-    Logger.log(`Success ${packageName}: ${versions.length} versions found`);
+		const versions = Object.keys(data.releases);
+		Logger.log(`Success ${packageName}: ${versions.length} versions found`);
 
-    return {
-      success: true,
-      data: {
-        packageName,
-        versions,
-        summary: data.info?.summary || undefined,
-        fetchedAt: Date.now(),
-      },
-    };
-  } catch (error) {
-    const msg = error instanceof Error ? error.message : String(error);
-    if (msg === "404") {
-      return { success: false, error: "not-found" };
-    }
-    if (
-      msg === "Timeout" ||
-      (error instanceof Error && (error as any).code === "ETIMEDOUT")
-    ) {
-      return { success: false, error: "network-error" };
-    }
-    Logger.error(`Final catch error for ${packageName}:`, error);
-    return { success: false, error: "network-error" };
-  }
+		return {
+			success: true,
+			data: {
+				packageName,
+				versions,
+				summary: data.info?.summary || undefined,
+				fetchedAt: Date.now(),
+			},
+		};
+	} catch (error) {
+		const msg = error instanceof Error ? error.message : String(error);
+		if (msg === "404") {
+			return { success: false, error: "not-found" };
+		}
+		if (
+			msg === "Timeout" ||
+			(error instanceof Error && (error as any).code === "ETIMEDOUT")
+		) {
+			return { success: false, error: "network-error" };
+		}
+		Logger.error(`Final catch error for ${packageName}:`, error);
+		return { success: false, error: "network-error" };
+	}
 }
