@@ -3,8 +3,8 @@
  * Validates: Requirements 6.1, 6.2, 6.3, 6.4, 6.5
  */
 
-import * as vscode from "vscode";
-import type { PackageVersions, CacheEntry } from "../types";
+import type * as vscode from "vscode";
+import type { CacheEntry, PackageVersions } from "../types";
 
 export class CacheManager {
 	private cache: Map<string, CacheEntry<PackageVersions>> = new Map();

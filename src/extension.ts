@@ -4,23 +4,23 @@
  */
 
 import * as vscode from "vscode";
+import { cacheManager } from "./core/cache";
+import type { AnyDependency } from "./core/unifiedParser";
+import { isSupportedFormat, parseDependencies } from "./core/unifiedParser";
+import { analyzeVersionUpdate } from "./core/versionAnalyzer";
 import { PyDepsCodeLensProvider } from "./providers/codeLensProvider";
 import { PyDepsHoverProvider } from "./providers/hoverProvider";
-import { onConfigChange, getConfig } from "./utils/configuration";
-import { cacheManager } from "./core/cache";
-import { parseDependencies, isSupportedFormat } from "./core/unifiedParser";
 import { getLatestCompatible } from "./providers/versionService";
-import { analyzeVersionUpdate } from "./core/versionAnalyzer";
-import { StatusBarManager } from "./utils/statusBar";
-import { t } from "./utils/i18n";
-import { Logger } from "./utils/logger";
+import type { VersionAnalysis } from "./types";
+import { getConfig, onConfigChange } from "./utils/configuration";
 import {
-	extractVersionFromLine,
 	buildVersionReplacement,
+	extractVersionFromLine,
 	extractVersionNumber,
 } from "./utils/dependencyUtils";
-import type { VersionAnalysis } from "./types";
-import type { AnyDependency } from "./core/unifiedParser";
+import { t } from "./utils/i18n";
+import { Logger } from "./utils/logger";
+import { StatusBarManager } from "./utils/statusBar";
 
 const DEBOUNCE_DELAY = 300;
 let debounceTimer: NodeJS.Timeout | undefined;
@@ -37,7 +37,7 @@ export function activate(context: vscode.ExtensionContext): void {
 	context.subscriptions.push(statusBar);
 
 	// Register command for updating version
-	const updateVersionCommand = vscode.commands.registerCommand(
+	const _updateVersionCommand = vscode.commands.registerCommand(
 		"pyDepsHint.updateVersion",
 		async (
 			document: vscode.TextDocument,
@@ -93,7 +93,7 @@ export function activate(context: vscode.ExtensionContext): void {
 	);
 
 	// Register command for updating all versions
-	const updateAllCommand = vscode.commands.registerCommand(
+	const _updateAllCommand = vscode.commands.registerCommand(
 		"pyDepsHint.updateAllVersions",
 		async () => {
 			const editor = vscode.window.activeTextEditor;
@@ -108,7 +108,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
 			const edit = new vscode.WorkspaceEdit();
 			let safeUpdates = 0;
-			let riskyUpdates: Array<{
+			const riskyUpdates: Array<{
 				dep: AnyDependency;
 				currentVersion: string;
 				newVersion: string;
@@ -157,7 +157,7 @@ export function activate(context: vscode.ExtensionContext): void {
 						if (progressToken.isCancellationRequested) {
 							break;
 						}
-						if (!result || !result.versionInfo.latestCompatible) {
+						if (!result?.versionInfo.latestCompatible) {
 							continue;
 						}
 
@@ -272,7 +272,7 @@ export function activate(context: vscode.ExtensionContext): void {
 	// Register command for showing up-to-date status (no-op, just for styling)
 	const showUpToDateCommand = vscode.commands.registerCommand(
 		"pyDepsHint.showUpToDate",
-		(packageName: string, version: string) => {
+		(_packageName: string, _version: string) => {
 			// This is just for styling purposes, no action needed
 		},
 	);

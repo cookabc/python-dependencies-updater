@@ -1,4 +1,4 @@
-import * as assert from "assert";
+import * as assert from "node:assert";
 import { extractVersionNumber } from "../../utils/dependencyUtils";
 
 describe("Dependency Utils - extractVersionNumber", () => {
@@ -41,9 +41,9 @@ describe("Dependency Utils - extractVersionNumber", () => {
 
 	it("should return empty string for null/undefined/empty input", () => {
 		assert.strictEqual(extractVersionNumber(""), "");
-		// @ts-ignore
+		// @ts-expect-error
 		assert.strictEqual(extractVersionNumber(null), "");
-		// @ts-ignore
+		// @ts-expect-error
 		assert.strictEqual(extractVersionNumber(undefined), "");
 	});
 });

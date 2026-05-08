@@ -1,4 +1,4 @@
-import * as assert from "assert";
+import * as assert from "node:assert";
 import { detectFileType, FileType } from "../../core/unifiedParser";
 
 describe("Unified Parser", () => {
@@ -19,7 +19,7 @@ describe("Unified Parser", () => {
 		it("should fail for mismatched content in pyproject.toml", () => {
 			// If content doesn't have [project] or similar, confidence might be lower or invalid?
 			// The implementation checks for indicators
-			const result = detectFileType("pyproject.toml", "INVALID_CONTENT");
+			const _result = detectFileType("pyproject.toml", "INVALID_CONTENT");
 			// If it ends with pyproject.toml but has no indicators, does it fail?
 			// Looking at code: check file name -> check indicators.
 			// If indicators fail, it falls through.

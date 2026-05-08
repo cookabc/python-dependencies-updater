@@ -255,7 +255,7 @@ export function getLocale(overrideLanguage?: string): string {
 	if (!locale) {
 		try {
 			locale = vscode.env.language;
-		} catch (e) {
+		} catch (_e) {
 			// vscode module might not be available in tests
 			locale = "en";
 		}
@@ -285,7 +285,7 @@ export function getLocale(overrideLanguage?: string): string {
 
 export function t(key: keyof Messages, ...args: (string | number)[]): string {
 	const locale = getLocale();
-	let msg = messages[locale]?.[key] || messages["en"][key];
+	let msg = messages[locale]?.[key] || messages.en[key];
 	if (args.length > 0) {
 		args.forEach((arg, i) => {
 			msg = msg.replace(`{${i}}`, String(arg));

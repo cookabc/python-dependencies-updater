@@ -3,7 +3,7 @@
  * Validates: Requirements 4.1, 4.2, 4.3, 4.4, 4.5, 4.6
  */
 
-import type { VersionConstraint, ResolveResult } from "../types";
+import type { ResolveResult, VersionConstraint } from "../types";
 
 // Pre-release identifiers
 const PRERELEASE_PATTERNS = [
@@ -42,7 +42,7 @@ export function parseVersion(version: string): number[] {
 	const cleanVersion = version.replace(VERSION_CLEAN_REGEX, "");
 	const parts = cleanVersion.split(".").map((p) => {
 		const num = parseInt(p, 10);
-		return isNaN(num) ? 0 : num;
+		return Number.isNaN(num) ? 0 : num;
 	});
 
 	// Ensure at least 3 parts for comparison
@@ -240,7 +240,7 @@ export function resolve(
 	const constraints = parseSpecifier(specifier);
 
 	// Filter versions
-	let candidates = versions.filter((v) => {
+	const candidates = versions.filter((v) => {
 		// Filter pre-releases unless explicitly included
 		if (!includePrerelease && isPrerelease(v)) {
 			return false;

@@ -1,4 +1,4 @@
-import * as assert from "assert";
+import * as assert from "node:assert";
 import { PyDepsHoverProvider } from "../../providers/hoverProvider";
 
 // Mock version of vscode
@@ -49,14 +49,14 @@ const mockVscode: any = {
 	},
 	workspace: {
 		getConfiguration: () => ({
-			get: (key: string, defaultValue: any) => defaultValue,
+			get: (_key: string, defaultValue: any) => defaultValue,
 		}),
 	},
 };
 
 describe("PyDepsHoverProvider Security", () => {
 	it("should configure MarkdownString securely", async () => {
-		const provider = new PyDepsHoverProvider();
+		const _provider = new PyDepsHoverProvider();
 
 		// We can't easily call provideHover because it does network requests
 		// but we can check if the class correctly uses MarkdownString

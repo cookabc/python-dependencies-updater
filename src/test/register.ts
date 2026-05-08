@@ -2,8 +2,8 @@
  * Test register script that provides a vscode module mock.
  * Required before tests so that modules importing 'vscode' don't fail.
  */
-const Module = require("module");
-const path = require("path");
+const Module = require("node:module");
+const path = require("node:path");
 
 const originalResolveFilename = Module._resolveFilename;
 Module._resolveFilename = function (

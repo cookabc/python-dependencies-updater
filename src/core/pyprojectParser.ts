@@ -49,7 +49,7 @@ export function parsePyProjectDocument(content: string): PyProjectDependency[] {
 		}
 
 		return dependencies;
-	} catch (e) {
+	} catch (_e) {
 		// Fallback or silent failure for invalid TOML
 		return [];
 	}
@@ -59,7 +59,7 @@ function extractDependencies(
 	deps: string[],
 	section: "project.dependencies" | "project.optional-dependencies",
 	lines: string[],
-	content: string,
+	_content: string,
 	extra?: string,
 ): PyProjectDependency[] {
 	const result: PyProjectDependency[] = [];

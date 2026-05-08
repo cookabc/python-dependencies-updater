@@ -4,15 +4,15 @@
  */
 
 import * as vscode from "vscode";
-import { parseDependencies, type AnyDependency } from "../core/unifiedParser";
-import { getLatestCompatible } from "./versionService";
+import { type AnyDependency, parseDependencies } from "../core/unifiedParser";
+import { analyzeVersionUpdate } from "../core/versionAnalyzer";
+import type { VersionInfo } from "../types";
 import { getConfig } from "../utils/configuration";
 import { extractVersionNumber } from "../utils/dependencyUtils";
-import { analyzeVersionUpdate } from "../core/versionAnalyzer";
 import { t } from "../utils/i18n";
 import { Logger } from "../utils/logger";
-import type { VersionInfo } from "../types";
-import { StatusBarManager } from "../utils/statusBar";
+import type { StatusBarManager } from "../utils/statusBar";
+import { getLatestCompatible } from "./versionService";
 
 interface VersionCacheEntry {
 	status: "loading" | "success" | "error";
@@ -67,7 +67,7 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 
 	provideCodeLenses(
 		document: vscode.TextDocument,
-		token: vscode.CancellationToken,
+		_token: vscode.CancellationToken,
 	): vscode.CodeLens[] {
 		const config = getConfig();
 
@@ -125,7 +125,7 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 
 	async resolveCodeLens(
 		codeLens: vscode.CodeLens,
-		token: vscode.CancellationToken,
+		_token: vscode.CancellationToken,
 	): Promise<vscode.CodeLens> {
 		if (!(codeLens instanceof DependencyCodeLens)) {
 			return codeLens;

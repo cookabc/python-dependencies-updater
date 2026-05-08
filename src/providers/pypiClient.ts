@@ -3,7 +3,7 @@
  * Validates: Requirements 3.1, 3.2, 3.3, 3.4, 3.5
  */
 
-import type { PackageVersions, PyPIClientResult } from "../types";
+import type { PyPIClientResult } from "../types";
 import { Logger } from "../utils/logger";
 
 interface PyPIResponse {

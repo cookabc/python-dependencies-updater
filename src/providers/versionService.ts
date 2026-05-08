@@ -4,10 +4,10 @@
  */
 
 import { cacheManager } from "../core/cache";
-import { fetchVersions } from "./pypiClient";
 import { resolve } from "../core/versionResolver";
 import type { VersionInfo } from "../types";
 import { Logger } from "../utils/logger";
+import { fetchVersions } from "./pypiClient";
 
 /**
  * Get the latest compatible version for a package

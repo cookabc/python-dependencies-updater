@@ -5,10 +5,10 @@
 
 import * as vscode from "vscode";
 import { parseDependencies } from "../core/unifiedParser";
-import { getLatestCompatible } from "./versionService";
 import { getConfig } from "../utils/configuration";
 import { t } from "../utils/i18n";
 import { Logger } from "../utils/logger";
+import { getLatestCompatible } from "./versionService";
 
 export class PyDepsHoverProvider implements vscode.HoverProvider {
 	async provideHover(

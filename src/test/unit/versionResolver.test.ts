@@ -1,10 +1,9 @@
-import * as assert from "assert";
+import * as assert from "node:assert";
 import {
-	parseVersion,
 	compareVersions,
-	satisfies,
+	parseVersion,
 	resolve,
-	parseSpecifier,
+	satisfies,
 } from "../../core/versionResolver";
 
 describe("Version Resolver", () => {

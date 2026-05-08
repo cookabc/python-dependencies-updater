@@ -5,12 +5,12 @@
 
 import type { ParsedDependency, PyProjectDependency } from "../types";
 import {
-	parseDocument as parseRequirementsDocument,
 	format as formatRequirement,
+	parseDocument as parseRequirementsDocument,
 } from "./parser";
 import {
-	parsePyProjectDocument,
 	formatPyProjectDependency,
+	parsePyProjectDocument,
 	toRequirementsFormat as toRequirementsFormatPyProject,
 } from "./pyprojectParser";
 
@@ -106,7 +106,6 @@ export function parseDependencies(
 	switch (detection.type) {
 		case FileType.PyProject:
 			return parsePyProjectDocument(content);
-		case FileType.Requirements:
 		default:
 			return parseRequirementsDocument(content);
 	}

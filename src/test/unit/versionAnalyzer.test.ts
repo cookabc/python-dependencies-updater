@@ -1,4 +1,4 @@
-import * as assert from "assert";
+import * as assert from "node:assert";
 import { analyzeVersionUpdate } from "../../core/versionAnalyzer";
 
 describe("Version Analyzer", () => {

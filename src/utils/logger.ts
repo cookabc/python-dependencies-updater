@@ -4,31 +4,31 @@ export class Logger {
 	private static channel: vscode.OutputChannel;
 
 	public static init(name: string) {
-		this.channel = vscode.window.createOutputChannel(name);
+		Logger.channel = vscode.window.createOutputChannel(name);
 	}
 
 	public static log(message: string) {
-		if (!this.channel) {
+		if (!Logger.channel) {
 			return;
 		}
 		const timestamp = new Date().toISOString();
-		this.channel.appendLine(`[${timestamp}] [INFO] ${message}`);
+		Logger.channel.appendLine(`[${timestamp}] [INFO] ${message}`);
 	}
 
 	public static error(message: string, error?: any) {
-		if (!this.channel) {
+		if (!Logger.channel) {
 			return;
 		}
 		const timestamp = new Date().toISOString();
-		this.channel.appendLine(`[${timestamp}] [ERROR] ${message}`);
+		Logger.channel.appendLine(`[${timestamp}] [ERROR] ${message}`);
 		if (error) {
-			this.channel.appendLine(error.stack || error.message || String(error));
+			Logger.channel.appendLine(error.stack || error.message || String(error));
 		}
 	}
 
 	public static show() {
-		if (this.channel) {
-			this.channel.show();
+		if (Logger.channel) {
+			Logger.channel.show();
 		}
 	}
 }

@@ -32,8 +32,8 @@ export function extractVersionFromLine(
 	// Regex: /([=<>!~\^]+)\s*([^\s#;]+)/
 
 	const versionRegex = isTOML
-		? /([=<>!~\^]+)\s*([^"',\s\]\}]+)/
-		: /([=<>!~\^]+)\s*([^\s#;]+)/;
+		? /([=<>!~^]+)\s*([^"',\s\]}]+)/
+		: /([=<>!~^]+)\s*([^\s#;]+)/;
 
 	const match = line.match(versionRegex);
 
@@ -83,6 +83,6 @@ export function extractVersionNumber(specifier: string): string {
 	// Trim to remove leading/trailing whitespace
 	clean = clean.trim();
 	// Remove operators at start
-	clean = clean.replace(/^[=<>!~\^]+/, "");
+	clean = clean.replace(/^[=<>!~^]+/, "");
 	return clean.trim();
 }

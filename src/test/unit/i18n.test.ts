@@ -1,5 +1,5 @@
+import * as assert from "node:assert";
 import { getLocale } from "../../utils/i18n";
-import * as assert from "assert";
 
 describe("i18n Logic", () => {
 	describe("getLocale", () => {
