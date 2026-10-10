@@ -2,8 +2,8 @@
 
 Smart version management for Python requirements.txt and pyproject.toml files with one-click updates and breaking change detection.
 
-[![Visual Studio Marketplace Version](https://img.shields.io/visual-studio-marketplace/v/cookabc.python-dependencies-updater)](https://marketplace.visualstudio.com/items?itemName=cookabc.python-dependencies-updater)
-[![Visual Studio Marketplace Downloads](https://img.shields.io/visual-studio-marketplace/d/cookabc.python-dependencies-updater)](https://marketplace.visualstudio.com/items?itemName=cookabc.python-dependencies-updater)
+[![Marketplace Version](https://vsmarketplacebadges.dev/version/cookabc.python-dependencies-updater.svg)](https://marketplace.visualstudio.com/items?itemName=cookabc.python-dependencies-updater)
+[![Downloads](https://vsmarketplacebadges.dev/downloads-short/cookabc.python-dependencies-updater.svg)](https://marketplace.visualstudio.com/items?itemName=cookabc.python-dependencies-updater)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## ✨ Features
