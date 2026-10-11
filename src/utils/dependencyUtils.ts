@@ -14,10 +14,15 @@ export interface VersionMatch {
  * Extract version specifier from a line of text
  * @param line The text line
  * @param isTOML Whether the file is TOML
+ * @param fromColumn Optional column to start searching from. Dependencies
+ *   parsed from a TOML single-line array share one line, so callers must pass
+ *   the dependency's startColumn — otherwise the assignment "=" (or another
+ *   dependency's specifier) is matched instead of this dependency's version.
  */
 export function extractVersionFromLine(
 	line: string,
 	isTOML: boolean,
+	fromColumn = 0,
 ): VersionMatch | null {
 	// Regex to find version specifier
 	// Matches: operator (group 1) followed by version (group 2)
@@ -29,21 +34,23 @@ export function extractVersionFromLine(
 
 	// For requirements.txt:
 	// ==1.0, >=1.0
-	// Regex: /([=<>!~\^]+)\s*([^\s#;]+)/
+	// Regex: /([=<>!~^]+)\s*([^\s#;]+)/
 
 	const versionRegex = isTOML
 		? /([=<>!~^]+)\s*([^"',\s\]}]+)/
 		: /([=<>!~^]+)\s*([^\s#;]+)/;
 
-	const match = line.match(versionRegex);
+	const searchFrom = Math.max(0, Math.min(fromColumn, line.length));
+	const match = line.slice(searchFrom).match(versionRegex);
 
 	if (match) {
+		const startIndex = searchFrom + match.index!;
 		return {
 			fullMatch: match[0],
 			operator: match[1],
 			version: match[2],
-			startIndex: match.index!,
-			endIndex: match.index! + match[0].length,
+			startIndex,
+			endIndex: startIndex + match[0].length,
 		};
 	}
 
@@ -73,13 +80,16 @@ export function buildVersionReplacement(
 /**
  * Extract just the version number from a specifier string
  * e.g. "==1.0.0" -> "1.0.0", ">=2.0" -> "2.0"
+ * Environment markers ("; python_version >= '3.9'") are dropped
  */
 export function extractVersionNumber(specifier: string): string {
 	if (!specifier) {
 		return "";
 	}
+	// Drop environment markers first: everything from the first ";"
+	let clean = specifier.split(";")[0];
 	// Remove quotes
-	let clean = specifier.replace(/["']/g, "");
+	clean = clean.replace(/["']/g, "");
 	// Trim to remove leading/trailing whitespace
 	clean = clean.trim();
 	// Remove operators at start

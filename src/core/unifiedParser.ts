@@ -40,18 +40,20 @@ export function detectFileType(
 	fileName: string,
 	content: string,
 ): FileTypeDetection {
-	// Check file extension/name first
-	if (
-		fileName.endsWith("pyproject.toml") ||
-		fileName.endsWith("Pipfile.toml")
-	) {
-		// Verify it's actually a pyproject.toml by checking for [project] section
+	const lowerName = fileName.toLowerCase();
+
+	// Any other TOML file (Cargo.toml, rust-toolchain.toml, Pipfile.toml, ...)
+	// is not a Python dependency manifest; the content heuristics below would
+	// match its "key = value" lines and produce bogus dependencies.
+	if (lowerName.endsWith(".toml")) {
 		if (
-			content.includes("[project]") ||
-			content.includes("project.dependencies")
+			lowerName.endsWith("pyproject.toml") &&
+			(content.includes("[project]") ||
+				content.includes("project.dependencies"))
 		) {
 			return { type: FileType.PyProject, isValid: true, confidence: 1.0 };
 		}
+		return { type: FileType.PyProject, isValid: false, confidence: 0.0 };
 	}
 
 	if (
@@ -141,10 +143,7 @@ export function toRequirementsFormat(dep: AnyDependency): string {
  * Get file type from file name
  */
 export function getFileTypeFromName(fileName: string): FileType | null {
-	if (
-		fileName.endsWith("pyproject.toml") ||
-		fileName.endsWith("Pipfile.toml")
-	) {
+	if (fileName.toLowerCase().endsWith("pyproject.toml")) {
 		return FileType.PyProject;
 	}
 
@@ -162,6 +161,11 @@ export function getFileTypeFromName(fileName: string): FileType | null {
  * Check if a file is supported by this parser
  */
 export function isSupportedFile(fileName: string, content?: string): boolean {
+	const lowerName = fileName.toLowerCase();
+	if (lowerName.endsWith(".toml") && !lowerName.endsWith("pyproject.toml")) {
+		return false;
+	}
+
 	const fileType = getFileTypeFromName(fileName);
 	if (fileType) {
 		return true;

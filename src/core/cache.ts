@@ -35,9 +35,14 @@ export class CacheManager {
 		if (!this.memento) {
 			return;
 		}
+		// Drop entries untouched for 30 days so the persisted state cannot grow
+		// without bound (expiry beyond that is handled lazily on get()).
+		const pruneBefore = Date.now() - 30 * 24 * 60 * 60 * 1000;
 		const storageObj: Record<string, CacheEntry<PackageVersions>> = {};
 		this.cache.forEach((value, key) => {
-			storageObj[key] = value;
+			if (value.timestamp >= pruneBefore) {
+				storageObj[key] = value;
+			}
 		});
 		this.memento.update(this.STORAGE_KEY, storageObj);
 	}

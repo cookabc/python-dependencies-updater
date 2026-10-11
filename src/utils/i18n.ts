@@ -23,6 +23,10 @@ interface Messages {
 	statusBarUpdatesAvailable: string;
 	statusBarTooltipUpToDate: string;
 	statusBarTooltipUpdates: string;
+	noCompatible: string;
+	majorUpdateDetected: string;
+	continueQuestion: string;
+	majorSkipped: string;
 }
 
 const messages: Record<string, Messages> = {
@@ -38,6 +42,10 @@ const messages: Record<string, Messages> = {
 		checkFailed: "Check failed",
 		checking: "Checking",
 		updateAnyway: "Update Anyway",
+		noCompatible: "No compatible update",
+		majorUpdateDetected: "Major version update detected!",
+		continueQuestion: "This may include breaking changes. Continue?",
+		majorSkipped: "({0} major updates skipped)",
 		updateSafeOnly: "Update Safe Only",
 		updateAllRisky: "Update All (Including Risky)",
 		majorFound:
@@ -60,6 +68,10 @@ const messages: Record<string, Messages> = {
 		checkFailed: "检查失败",
 		checking: "检查中",
 		updateAnyway: "仍然更新",
+		noCompatible: "没有兼容的新版本",
+		majorUpdateDetected: "检测到主版本更新！",
+		continueQuestion: "可能包含破坏性变更，是否继续？",
+		majorSkipped: "（已跳过 {0} 个主版本更新）",
 		updateSafeOnly: "仅更新安全版本",
 		updateAllRisky: "全部更新 (包含风险)",
 		majorFound: "发现 {0} 个重大版本更新，可能包含破坏性变更：",
@@ -80,6 +92,10 @@ const messages: Record<string, Messages> = {
 		checkFailed: "檢查失敗",
 		checking: "檢查中",
 		updateAnyway: "仍然更新",
+		noCompatible: "沒有相容的新版本",
+		majorUpdateDetected: "偵測到主版本更新！",
+		continueQuestion: "可能包含破壞性變更，是否繼續？",
+		majorSkipped: "（已略過 {0} 個主版本更新）",
 		updateSafeOnly: "僅更新安全版本",
 		updateAllRisky: "全部更新 (包含風險)",
 		majorFound: "發現 {0} 個重大版本更新，可能包含破壞性變更：",
@@ -101,6 +117,10 @@ const messages: Record<string, Messages> = {
 		checkFailed: "チェック失敗",
 		checking: "チェック中",
 		updateAnyway: "とにかく更新",
+		noCompatible: "互換性のある更新はありません",
+		majorUpdateDetected: "メジャーアップデートを検出しました！",
+		continueQuestion: "破壊的な変更が含まれる可能性があります。続行しますか？",
+		majorSkipped: "（{0} 件のメジャーアップデートをスキップしました）",
 		updateSafeOnly: "安全な更新のみ",
 		updateAllRisky: "すべて更新 (リスクあり)",
 		majorFound:
@@ -123,6 +143,11 @@ const messages: Record<string, Messages> = {
 		checkFailed: "확인 실패",
 		checking: "확인 중",
 		updateAnyway: "그래도 업데이트",
+		noCompatible: "호환되는 업데이트가 없습니다",
+		majorUpdateDetected: "메이저 버전 업데이트가 감지되었습니다!",
+		continueQuestion:
+			"호환되지 않는 변경이 포함될 수 있습니다. 계속하시겠습니까?",
+		majorSkipped: "({0}개 메이저 업데이트 건너뜀)",
 		updateSafeOnly: "안전한 업데이트만",
 		updateAllRisky: "모두 업데이트 (위험 포함)",
 		majorFound:
@@ -146,6 +171,10 @@ const messages: Record<string, Messages> = {
 		checkFailed: "Échec de la vérification",
 		checking: "Vérification",
 		updateAnyway: "Mettre à jour quand même",
+		noCompatible: "Aucune mise à jour compatible",
+		majorUpdateDetected: "Mise à jour majeure détectée !",
+		continueQuestion: "Cela peut inclure des changements cassants. Continuer ?",
+		majorSkipped: "({0} mises à jour majeures ignorées)",
 		updateSafeOnly: "Uniquement les mises à jour sûres",
 		updateAllRisky: "Tout mettre à jour (y compris les risques)",
 		majorFound:
@@ -169,6 +198,10 @@ const messages: Record<string, Messages> = {
 		checkFailed: "Überprüfung fehlgeschlagen",
 		checking: "Überprüfen",
 		updateAnyway: "Trotzdem aktualisieren",
+		noCompatible: "Keine kompatible Aktualisierung",
+		majorUpdateDetected: "Major-Update erkannt!",
+		continueQuestion: "Kann Breaking Changes enthalten. Fortfahren?",
+		majorSkipped: "({0} Major-Updates übersprungen)",
 		updateSafeOnly: "Nur sichere Updates",
 		updateAllRisky: "Alle aktualisieren (inklusive Risiko)",
 		majorFound:
@@ -191,6 +224,10 @@ const messages: Record<string, Messages> = {
 		checkFailed: "Controllo fallito",
 		checking: "Controllo",
 		updateAnyway: "Aggiorna comunque",
+		noCompatible: "Nessun aggiornamento compatibile",
+		majorUpdateDetected: "Rilevato aggiornamento principale!",
+		continueQuestion: "Potrebbe includere modifiche incompatibili. Continuare?",
+		majorSkipped: "({0} aggiornamenti principali ignorati)",
 		updateSafeOnly: "Solo aggiornamenti sicuri",
 		updateAllRisky: "Aggiorna tutto (inclusi rischi)",
 		majorFound:
@@ -214,6 +251,11 @@ const messages: Record<string, Messages> = {
 		checkFailed: "Comprobación fallida",
 		checking: "Comprobando",
 		updateAnyway: "Actualizar de todos modos",
+		noCompatible: "No hay actualización compatible",
+		majorUpdateDetected: "¡Actualización principal detectada!",
+		continueQuestion:
+			"Puede incluir cambios que rompen la compatibilidad. ¿Continuar?",
+		majorSkipped: "({0} actualizaciones principales omitidas)",
 		updateSafeOnly: "Solo actualizaciones seguras",
 		updateAllRisky: "Actualizar todo (incluyendo riesgos)",
 		majorFound:
@@ -237,6 +279,10 @@ const messages: Record<string, Messages> = {
 		checkFailed: "Ошибка проверки",
 		checking: "Проверка",
 		updateAnyway: "Обновить в любом случае",
+		noCompatible: "Нет совместимых обновлений",
+		majorUpdateDetected: "Обнаружено мажорное обновление!",
+		continueQuestion: "Могут содержаться критические изменения. Продолжить?",
+		majorSkipped: "({0} мажорных обновлений пропущено)",
 		updateSafeOnly: "Только безопасные обновления",
 		updateAllRisky: "Обновить все (включая рискованные)",
 		majorFound:

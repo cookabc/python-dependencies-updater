@@ -79,6 +79,27 @@ async function doMakeRequest(url: string): Promise<PyPIResponse> {
 }
 
 /**
+ * Pick installable versions from a PyPI JSON "releases" map.
+ * Drops releases with no files and releases where every file is yanked —
+ * neither can be installed, so they must never be suggested as updates.
+ */
+export function filterInstallableVersions(
+	releases: Record<string, unknown[]>,
+): string[] {
+	return Object.entries(releases)
+		.filter(([, files]) => {
+			if (!Array.isArray(files)) {
+				return false;
+			}
+			return files.some(
+				(file) =>
+					file && typeof file === "object" && (file as any).yanked !== true,
+			);
+		})
+		.map(([version]) => version);
+}
+
+/**
  * Fetch version data from PyPI for a package
  */
 export async function fetchVersions(
@@ -98,7 +119,7 @@ export async function fetchVersions(
 			return { success: false, error: "parse-error" };
 		}
 
-		const versions = Object.keys(data.releases);
+		const versions = filterInstallableVersions(data.releases);
 		Logger.log(`Success ${packageName}: ${versions.length} versions found`);
 
 		return {

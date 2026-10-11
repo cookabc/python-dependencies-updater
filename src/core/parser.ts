@@ -81,7 +81,9 @@ export function parse(
 	}
 
 	const packageName = match[1];
-	const versionSpecifier = match[2].trim();
+	// A trailing "\" means the requirement continues on the next line; the
+	// continuation itself (e.g. --hash=...) is skipped, so drop the marker.
+	const versionSpecifier = match[2].trim().replace(/\\+$/, "").trim();
 
 	// Find the actual position in the original line
 	const startColumn = line.indexOf(packageName);

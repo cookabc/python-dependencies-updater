@@ -5,9 +5,49 @@
 
 import { cacheManager } from "../core/cache";
 import { resolve } from "../core/versionResolver";
-import type { VersionInfo } from "../types";
+import type { PackageVersions, VersionInfo } from "../types";
 import { Logger } from "../utils/logger";
 import { fetchVersions } from "./pypiClient";
+
+const DEFAULT_REGISTRY = "https://pypi.org";
+
+/**
+ * Cache key includes the registry so that switching registries cannot serve
+ * data fetched from the previous one.
+ */
+function cacheKey(packageName: string, registryUrl?: string): string {
+	return `${(registryUrl || DEFAULT_REGISTRY).replace(/\/+$/, "")}|${packageName}`;
+}
+
+/**
+ * Fetch (or take from cache) the raw version list of a package.
+ * Resolution against a specifier happens separately per dependency, so that
+ * two dependencies on the same package with different specifiers share one
+ * network fetch.
+ */
+export async function getPackageVersions(
+	packageName: string,
+	cacheTTLMinutes: number = 60,
+	registryUrl?: string,
+): Promise<PackageVersions> {
+	const key = cacheKey(packageName, registryUrl);
+	const cached = cacheManager.get(key, cacheTTLMinutes);
+	if (cached) {
+		return cached;
+	}
+
+	Logger.log(`Fetching PyPI versions for ${packageName}`);
+	const result = await fetchVersions(packageName, registryUrl);
+
+	if (!result.success || !result.data) {
+		throw Object.assign(new Error(result.error ?? "fetch-error"), {
+			fetchError: result.error ?? "fetch-error",
+		});
+	}
+
+	cacheManager.set(key, result.data);
+	return result.data;
+}
 
 /**
  * Get the latest compatible version for a package
@@ -19,47 +59,41 @@ export async function getLatestCompatible(
 	cacheTTLMinutes: number = 60,
 	registryUrl?: string,
 ): Promise<VersionInfo> {
-	// Check cache first
-	let packageVersions = cacheManager.get(packageName, cacheTTLMinutes);
+	try {
+		const packageVersions = await getPackageVersions(
+			packageName,
+			cacheTTLMinutes,
+			registryUrl,
+		);
 
-	// Fetch from PyPI if not cached
-	if (!packageVersions) {
-		Logger.log(`Fetching PyPI versions for ${packageName}`);
-		const result = await fetchVersions(packageName, registryUrl);
+		const resolved = resolve(
+			packageVersions.versions,
+			specifier,
+			includePrerelease,
+		);
 
-		if (!result.success) {
-			if (result.error === "not-found") {
-				Logger.error(`Package ${packageName} not found on PyPI`);
-				return { packageName, latestCompatible: null, error: "not-found" };
-			}
-			Logger.error(
-				`Failed to fetch versions for ${packageName}: ${result.error}`,
-			);
-			return { packageName, latestCompatible: null, error: "fetch-error" };
+		if (!resolved.found) {
+			return {
+				packageName,
+				latestCompatible: null,
+				error: "no-compatible-version",
+			};
 		}
 
-		packageVersions = result.data!;
-		cacheManager.set(packageName, packageVersions);
-	}
-
-	// Resolve the latest compatible version
-	const resolved = resolve(
-		packageVersions.versions,
-		specifier,
-		includePrerelease,
-	);
-
-	if (!resolved.found) {
 		return {
 			packageName,
-			latestCompatible: null,
-			error: "no-compatible-version",
+			latestCompatible: resolved.version!,
+			summary: packageVersions.summary,
 		};
+	} catch (e: any) {
+		const fetchError = e?.fetchError;
+		if (fetchError === "not-found") {
+			Logger.error(`Package ${packageName} not found on PyPI`);
+			return { packageName, latestCompatible: null, error: "not-found" };
+		}
+		Logger.error(
+			`Failed to fetch versions for ${packageName}: ${fetchError ?? e}`,
+		);
+		return { packageName, latestCompatible: null, error: "fetch-error" };
 	}
-
-	return {
-		packageName,
-		latestCompatible: resolved.version!,
-		summary: packageVersions.summary,
-	};
 }

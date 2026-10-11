@@ -6,16 +6,12 @@
 import type { ResolveResult, VersionConstraint } from "../types";
 
 // Pre-release identifiers
-const PRERELEASE_PATTERNS = [
-	"a",
-	"alpha",
-	"b",
-	"beta",
-	"rc",
-	"dev",
-	"pre",
-	"post",
-];
+// A pre-release segment (a/alpha/b/beta/c/rc/pre/preview/dev) with its number,
+// optionally followed by a .postN tail (PEP 440: X.Y.ZaN.postM is still a pre-release).
+// ".post" alone is a POST-release and must NOT match, so the tag has to be at the
+// end of the version (optionally closing with the post tail).
+const PRERELEASE_SUFFIX_REGEX =
+	/(?:a|alpha|b|beta|c|rc|pre|preview|dev)\d*(?:\.post\d*)?$/i;
 
 // Pre-compiled regexes for performance
 const VERSION_CLEAN_REGEX = /[a-zA-Z].*/g;
@@ -29,8 +25,7 @@ const RC_REGEX = /(?:^|[.\d\-_])(rc|pre|c)\.?(\d*)/;
  * Check if a version string is a pre-release version
  */
 export function isPrerelease(version: string): boolean {
-	const lower = version.toLowerCase();
-	return PRERELEASE_PATTERNS.some((pattern) => lower.includes(pattern));
+	return PRERELEASE_SUFFIX_REGEX.test(version.trim());
 }
 
 /**
@@ -135,8 +130,9 @@ function getPrereleaseInfo(version: string): { type: number; number: number } {
 
 /**
  * Parse a version specifier string into constraints
- * Supports: ==, !=, >=, <=, >, <, ~=
+ * Supports: ===, ==, !=, >=, <=, >, <, ~=, and wildcards (==1.2.* / !=1.2.*)
  * Supports comma-separated multiple constraints
+ * Environment markers ("; python_version >= '3.9'") are stripped
  */
 export function parseSpecifier(specifier: string): VersionConstraint[] {
 	if (!specifier || specifier.trim() === "") {
@@ -146,11 +142,11 @@ export function parseSpecifier(specifier: string): VersionConstraint[] {
 	const constraints: VersionConstraint[] = [];
 	const parts = specifier
 		.split(",")
-		.map((p) => p.trim())
+		.map((p) => p.split(";")[0].trim())
 		.filter((p) => p);
 
 	for (const part of parts) {
-		const match = part.match(/^(==|!=|>=|<=|>|<|~=)\s*(.+)$/);
+		const match = part.match(/^(===|==|!=|>=|<=|>|<|~=)\s*(.+)$/);
 		if (match) {
 			constraints.push({
 				operator: match[1] as VersionConstraint["operator"],
@@ -163,15 +159,48 @@ export function parseSpecifier(specifier: string): VersionConstraint[] {
 }
 
 /**
+ * Check if a version satisfies a wildcard constraint (==1.2.* / !=1.2.*)
+ * Per PEP 440, prefix matching compares the numeric segments before the ".*"
+ */
+function satisfiesWildcard(
+	version: string,
+	constraint: VersionConstraint,
+): boolean {
+	const prefix = constraint.version
+		.slice(0, -2)
+		.split(".")
+		.map((p) => parseInt(p, 10) || 0);
+	const versionParts = parseVersion(version);
+
+	for (let i = 0; i < prefix.length; i++) {
+		if ((versionParts[i] || 0) !== prefix[i]) {
+			return false;
+		}
+	}
+	return true;
+}
+
+/**
  * Check if a version satisfies a single constraint
  */
 function satisfiesConstraint(
 	version: string,
 	constraint: VersionConstraint,
 ): boolean {
+	// Wildcards are only valid with == and != per PEP 440
+	if (
+		constraint.version.endsWith(".*") &&
+		(constraint.operator === "==" || constraint.operator === "!=")
+	) {
+		const matched = satisfiesWildcard(version, constraint);
+		return constraint.operator === "==" ? matched : !matched;
+	}
+
 	const cmp = compareVersions(version, constraint.version);
 
 	switch (constraint.operator) {
+		case "===":
+			return version.trim() === constraint.version.trim();
 		case "==":
 			return cmp === 0;
 		case "!=":

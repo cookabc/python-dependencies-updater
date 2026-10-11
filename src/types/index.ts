@@ -34,7 +34,7 @@ export interface CacheEntry<T> {
 }
 
 export interface VersionConstraint {
-	operator: "==" | "!=" | ">=" | "<=" | ">" | "<" | "~=";
+	operator: "===" | "==" | "!=" | ">=" | "<=" | ">" | "<" | "~=";
 	version: string;
 }
 

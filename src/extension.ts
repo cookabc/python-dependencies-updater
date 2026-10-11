@@ -37,18 +37,22 @@ export function activate(context: vscode.ExtensionContext): void {
 	context.subscriptions.push(statusBar);
 
 	// Register command for updating version
-	const _updateVersionCommand = vscode.commands.registerCommand(
+	const updateVersionCommand = vscode.commands.registerCommand(
 		"pyDepsHint.updateVersion",
 		async (
 			document: vscode.TextDocument,
 			line: number,
 			packageName: string,
 			newVersion: string,
+			startColumn?: number,
 		) => {
 			const lineText = document.lineAt(line).text;
 			const isTOML = document.languageId === "toml";
 
-			const match = extractVersionFromLine(lineText, isTOML);
+			// Search from the dependency's own column: several dependencies can
+			// share one line in a TOML single-line array, and the assignment "="
+			// would otherwise match first and corrupt the file.
+			const match = extractVersionFromLine(lineText, isTOML, startColumn ?? 0);
 			const currentVersion = match ? match.version : "";
 
 			// Analyze update risk
@@ -57,7 +61,7 @@ export function activate(context: vscode.ExtensionContext): void {
 			// Show confirmation for major updates
 			if (analysis.riskLevel === "high") {
 				const choice = await vscode.window.showWarningMessage(
-					`⚠️ Major version update detected!\n\n${packageName}: ${currentVersion} → ${newVersion}\n\nThis may include breaking changes. Continue?`,
+					`⚠️ ${t("majorUpdateDetected")}\n\n${packageName}: ${currentVersion} → ${newVersion}\n\n${t("continueQuestion")}`,
 					{ modal: true },
 					t("updateAnyway"),
 				);
@@ -92,8 +96,10 @@ export function activate(context: vscode.ExtensionContext): void {
 		},
 	);
 
+	context.subscriptions.push(updateVersionCommand);
+
 	// Register command for updating all versions
-	const _updateAllCommand = vscode.commands.registerCommand(
+	const updateAllCommand = vscode.commands.registerCommand(
 		"pyDepsHint.updateAllVersions",
 		async () => {
 			const editor = vscode.window.activeTextEditor;
@@ -103,6 +109,7 @@ export function activate(context: vscode.ExtensionContext): void {
 			}
 
 			const document = editor.document;
+			const documentVersionAtStart = document.version;
 			const deps = parseDependencies(document.fileName, document.getText());
 			const config = getConfig();
 
@@ -132,7 +139,7 @@ export function activate(context: vscode.ExtensionContext): void {
 							try {
 								const versionInfo = await getLatestCompatible(
 									dep.packageName,
-									"",
+									dep.versionSpecifier,
 									config.showPrerelease,
 									config.cacheTTLMinutes,
 									config.registryUrl,
@@ -178,7 +185,11 @@ export function activate(context: vscode.ExtensionContext): void {
 							} else {
 								const lineText = document.lineAt(dep.line).text;
 								const isTOML = document.languageId === "toml";
-								const match = extractVersionFromLine(lineText, isTOML);
+								const match = extractVersionFromLine(
+									lineText,
+									isTOML,
+									dep.startColumn,
+								);
 
 								if (match) {
 									const replacement = buildVersionReplacement(
@@ -201,6 +212,35 @@ export function activate(context: vscode.ExtensionContext): void {
 					}
 				},
 			);
+
+			// The fetches above can take a while; if the user edited the document
+			// meanwhile, the snapshot's line numbers no longer match the file.
+			// Re-parse and re-locate every dependency by name (+ extra) so the
+			// edits below always land on the current text.
+			let depsForEdits = deps;
+			if (document.version !== documentVersionAtStart) {
+				depsForEdits = parseDependencies(document.fileName, document.getText());
+				Logger.log(
+					`Document changed during update-all; re-matching ${depsForEdits.length} dependencies`,
+				);
+			}
+			const freshByName = new Map<string, AnyDependency[]>();
+			if (depsForEdits !== deps) {
+				for (const d of depsForEdits) {
+					const extra = "extra" in d ? (d.extra ?? "") : "";
+					const depKey = `${d.packageName}|${extra}`;
+					const list = freshByName.get(depKey) ?? [];
+					list.push(d);
+					freshByName.set(depKey, list);
+				}
+			}
+			const locate = (dep: AnyDependency): AnyDependency | undefined => {
+				if (depsForEdits === deps) {
+					return dep;
+				}
+				const extra = "extra" in dep ? (dep.extra ?? "") : "";
+				return freshByName.get(`${dep.packageName}|${extra}`)?.shift();
+			};
 
 			// Handle risky updates with confirmation
 			let confirmedRiskyUpdates = 0;
@@ -228,8 +268,16 @@ export function activate(context: vscode.ExtensionContext): void {
 				} else if (choice === t("updateAllRisky")) {
 					const isTOML = document.languageId === "toml";
 					for (const update of riskyUpdates) {
-						const lineText = document.lineAt(update.dep.line).text;
-						const match = extractVersionFromLine(lineText, isTOML);
+						const target = locate(update.dep);
+						if (!target) {
+							continue;
+						}
+						const lineText = document.lineAt(target.line).text;
+						const match = extractVersionFromLine(
+							lineText,
+							isTOML,
+							target.startColumn,
+						);
 
 						if (match) {
 							const replacement = buildVersionReplacement(
@@ -239,9 +287,9 @@ export function activate(context: vscode.ExtensionContext): void {
 								match,
 							);
 							const range = new vscode.Range(
-								update.dep.line,
+								target.line,
 								match.startIndex,
-								update.dep.line,
+								target.line,
 								match.endIndex,
 							);
 							edit.replace(document.uri, range, replacement);
@@ -259,7 +307,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
 				let message = `${t("updated")} ${totalUpdates} ${t("packages")}`;
 				if (riskyUpdates.length > 0 && confirmedRiskyUpdates === 0) {
-					message += ` (${riskyUpdates.length} major updates skipped)`;
+					message += ` ${t("majorSkipped", riskyUpdates.length)}`;
 				}
 
 				vscode.window.showInformationMessage(message);
@@ -268,6 +316,8 @@ export function activate(context: vscode.ExtensionContext): void {
 			}
 		},
 	);
+
+	context.subscriptions.push(updateAllCommand);
 
 	// Register command for showing up-to-date status (no-op, just for styling)
 	const showUpToDateCommand = vscode.commands.registerCommand(
@@ -333,7 +383,9 @@ export function activate(context: vscode.ExtensionContext): void {
 
 	// Handle configuration changes
 	const configDisposable = onConfigChange(() => {
-		// Refresh CodeLens when config changes
+		// Cached data may come from a different registry or predate a settings
+		// change (e.g. showPrerelease); drop it so the new config takes effect.
+		codeLensProvider.clearCache();
 		codeLensProvider.refresh();
 	});
 
@@ -346,6 +398,6 @@ export function deactivate(): void {
 		clearTimeout(debounceTimer);
 	}
 
-	// Clear cache
-	cacheManager.clear();
+	// The persisted cache is deliberately kept: it is the point of
+	// persisting it. Entries expire lazily via the configured TTL.
 }

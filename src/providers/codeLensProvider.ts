@@ -6,16 +6,22 @@
 import * as vscode from "vscode";
 import { type AnyDependency, parseDependencies } from "../core/unifiedParser";
 import { analyzeVersionUpdate } from "../core/versionAnalyzer";
-import type { VersionInfo } from "../types";
+import { resolve } from "../core/versionResolver";
+import type { PackageVersions, VersionInfo } from "../types";
 import { getConfig } from "../utils/configuration";
 import { extractVersionNumber } from "../utils/dependencyUtils";
 import { t } from "../utils/i18n";
 import { Logger } from "../utils/logger";
 import type { StatusBarManager } from "../utils/statusBar";
-import { getLatestCompatible } from "./versionService";
+import { getPackageVersions } from "./versionService";
+
+/** How long a failed check stays sticky before the next resolve retries it */
+const ERROR_RETRY_MS = 5 * 60 * 1000;
 
 interface VersionCacheEntry {
 	status: "loading" | "success" | "error";
+	/** Raw version list; resolution happens per dependency on use */
+	versions?: PackageVersions;
 	versionInfo?: VersionInfo;
 	timestamp: number;
 }
@@ -39,7 +45,7 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 	public readonly onDidChangeCodeLenses: vscode.Event<void> =
 		this._onDidChangeCodeLenses.event;
 
-	// Cache for version info: packageName -> VersionCacheEntry
+	// Cache for fetched version data: "registry|package" -> entry
 	private versionCache: Map<string, VersionCacheEntry> = new Map();
 	// Cache for parsed dependencies: document URI -> { version, dependencies }
 	private dependencyCache: Map<
@@ -63,6 +69,10 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 		this.versionCache.clear();
 		this.dependencyCache.clear();
 		this.pendingFetches.clear();
+	}
+
+	private cacheKey(packageName: string, registryUrl: string): string {
+		return `${registryUrl.replace(/\/+$/, "")}|${packageName.toLowerCase()}`;
 	}
 
 	provideCodeLenses(
@@ -123,6 +133,23 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 		return codeLenses;
 	}
 
+	/**
+	 * Resolve the newest usable version for one dependency from the raw list,
+	 * honouring the dependency's own specifier (==, >=, ~=, wildcards, markers).
+	 */
+	private resolveForDependency(
+		dep: AnyDependency,
+		raw: PackageVersions,
+		showPrerelease: boolean,
+	): string | null {
+		const specifier =
+			"section" in dep
+				? dep.versionSpecifier
+				: dep.versionSpecifier.replace(/\\+$/, "");
+		const resolved = resolve(raw.versions, specifier, showPrerelease);
+		return resolved.found ? resolved.version! : null;
+	}
+
 	async resolveCodeLens(
 		codeLens: vscode.CodeLens,
 		_token: vscode.CancellationToken,
@@ -136,10 +163,16 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 
 		const config = getConfig();
 		const packageNameWithoutExtras = dep.packageName.split("[")[0];
-		const cacheKey = packageNameWithoutExtras.toLowerCase();
-		const cached = this.versionCache.get(cacheKey);
+		const key = this.cacheKey(packageNameWithoutExtras, config.registryUrl);
+		const cached = this.versionCache.get(key);
 
-		if (!cached || cached.status === "loading") {
+		// Error entries are sticky for ERROR_RETRY_MS so a flaky network does
+		// not spam the registry, but recover automatically afterwards.
+		const staleError =
+			cached?.status === "error" &&
+			Date.now() - cached.timestamp > ERROR_RETRY_MS;
+
+		if (!cached || cached.status === "loading" || staleError) {
 			codeLens.command = {
 				title: `$(sync~spin) ${t("checking")}...`,
 				command: "pyDepsHint.showUpToDate",
@@ -147,8 +180,8 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 				tooltip: `Checking latest version for ${dep.packageName}...`,
 			};
 
-			if (!this.pendingFetches.has(cacheKey)) {
-				this.fetchVersionAsync(packageNameWithoutExtras, config);
+			if (!this.pendingFetches.has(key)) {
+				this.fetchVersionsAsync(packageNameWithoutExtras, config, key);
 			}
 		} else if (cached.status === "error") {
 			const error = cached.versionInfo?.error;
@@ -173,11 +206,24 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 				tooltip: tooltip,
 			};
 		} else {
-			const versionInfo = cached.versionInfo!;
+			const raw = cached.versions!;
+			const latestVersion = this.resolveForDependency(
+				dep,
+				raw,
+				config.showPrerelease,
+			);
 			const currentVersion = extractVersionNumber(dep.versionSpecifier);
-			const latestVersion = versionInfo.latestCompatible!;
 
-			if (currentVersion === latestVersion) {
+			if (!latestVersion) {
+				// The dependency's own constraint matches nothing newer/valid —
+				// nothing to suggest, which is different from an up-to-date pin.
+				codeLens.command = {
+					title: `$(info) ${t("noCompatible")}`,
+					command: "pyDepsHint.showUpToDate",
+					arguments: [dep.packageName, "no-compatible"],
+					tooltip: `${dep.packageName}: no version satisfies ${dep.versionSpecifier || "(any)"}`,
+				};
+			} else if (currentVersion === latestVersion) {
 				codeLens.command = {
 					title: `$(check-all) ${t("upToDate")}`,
 					command: "pyDepsHint.showUpToDate",
@@ -200,7 +246,13 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 				codeLens.command = {
 					title: `${icon} ${t("updateTo")} ${latestVersion}${riskText}`,
 					command: "pyDepsHint.updateVersion",
-					arguments: [document, dep.line, dep.packageName, latestVersion],
+					arguments: [
+						document,
+						dep.line,
+						dep.packageName,
+						latestVersion,
+						dep.startColumn,
+					],
 					tooltip: `Click to update ${dep.packageName} from ${currentVersion} to ${latestVersion}\nUpdate type: ${analysis.updateType}\nRisk level: ${analysis.riskLevel}`,
 				};
 			}
@@ -209,61 +261,52 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 		return codeLens;
 	}
 
-	private async fetchVersionAsync(
+	private async fetchVersionsAsync(
 		packageName: string,
 		config: ReturnType<typeof getConfig>,
+		key: string,
 	): Promise<void> {
-		const cacheKey = packageName.toLowerCase();
-
 		// Mark as pending
-		this.pendingFetches.add(cacheKey);
+		this.pendingFetches.add(key);
 
 		// Set loading state
-		this.versionCache.set(cacheKey, {
+		this.versionCache.set(key, {
 			status: "loading",
 			timestamp: Date.now(),
 		});
 
 		try {
 			Logger.log(`Fetching version for ${packageName}`);
-			const versionInfo = await getLatestCompatible(
+			const versions = await getPackageVersions(
 				packageName,
-				"",
-				config.showPrerelease,
 				config.cacheTTLMinutes,
 				config.registryUrl,
 			);
 
-			Logger.log(
-				`Got version info for ${packageName}: ${JSON.stringify(versionInfo)}`,
-			);
-
-			if (versionInfo.error || !versionInfo.latestCompatible) {
-				this.versionCache.set(cacheKey, {
-					status: "error",
-					versionInfo,
-					timestamp: Date.now(),
-				});
-			} else {
-				this.versionCache.set(cacheKey, {
-					status: "success",
-					versionInfo,
-					timestamp: Date.now(),
-				});
-			}
-		} catch (e) {
+			this.versionCache.set(key, {
+				status: "success",
+				versions,
+				timestamp: Date.now(),
+			});
+		} catch (e: any) {
 			Logger.error(`Error fetching ${packageName}:`, e);
-			this.versionCache.set(cacheKey, {
+			const fetchError = e?.fetchError;
+			this.versionCache.set(key, {
 				status: "error",
 				versionInfo: {
 					packageName,
 					latestCompatible: null,
-					error: "fetch-error",
+					error:
+						fetchError === "not-found"
+							? "not-found"
+							: fetchError === "parse-error"
+								? "not-found"
+								: "fetch-error",
 				},
 				timestamp: Date.now(),
 			});
 		} finally {
-			this.pendingFetches.delete(cacheKey);
+			this.pendingFetches.delete(key);
 			// Trigger refresh to update the CodeLens display
 			this._onDidChangeCodeLenses.fire();
 			// Update status bar from cached version data
@@ -276,11 +319,12 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 			return;
 		}
 
+		const config = getConfig();
 		let updatesAvailable = 0;
 		let totalChecked = 0;
 
 		for (const entry of this.versionCache.values()) {
-			if (entry.status === "success" && entry.versionInfo?.latestCompatible) {
+			if (entry.status === "success") {
 				totalChecked++;
 			}
 		}
@@ -288,17 +332,19 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 		// Count updates from the last known dependency set
 		for (const cached of this.dependencyCache.values()) {
 			for (const dep of cached.dependencies) {
-				const cacheKey = dep.packageName.split("[")[0].toLowerCase();
-				const vEntry = this.versionCache.get(cacheKey);
-				if (
-					vEntry?.status === "success" &&
-					vEntry.versionInfo?.latestCompatible
-				) {
+				const key = this.cacheKey(
+					dep.packageName.split("[")[0],
+					config.registryUrl,
+				);
+				const vEntry = this.versionCache.get(key);
+				if (vEntry?.status === "success" && vEntry.versions) {
+					const latest = this.resolveForDependency(
+						dep,
+						vEntry.versions,
+						config.showPrerelease,
+					);
 					const currentVersion = extractVersionNumber(dep.versionSpecifier);
-					if (
-						currentVersion &&
-						currentVersion !== vEntry.versionInfo.latestCompatible
-					) {
+					if (latest && currentVersion && currentVersion !== latest) {
 						updatesAvailable++;
 					}
 				}
