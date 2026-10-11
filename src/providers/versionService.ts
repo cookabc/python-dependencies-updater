@@ -4,7 +4,7 @@
  */
 
 import { cacheManager } from "../core/cache";
-import { resolve } from "../core/versionResolver";
+import { resolveLatest } from "../core/versionResolver";
 import type { PackageVersions, VersionInfo } from "../types";
 import { Logger } from "../utils/logger";
 import { fetchVersions } from "./pypiClient";
@@ -66,7 +66,7 @@ export async function getLatestCompatible(
 			registryUrl,
 		);
 
-		const resolved = resolve(
+		const resolved = resolveLatest(
 			packageVersions.versions,
 			specifier,
 			includePrerelease,

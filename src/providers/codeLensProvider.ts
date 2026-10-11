@@ -6,7 +6,7 @@
 import * as vscode from "vscode";
 import { type AnyDependency, parseDependencies } from "../core/unifiedParser";
 import { analyzeVersionUpdate } from "../core/versionAnalyzer";
-import { resolve } from "../core/versionResolver";
+import { isCoveredBySpecifier, resolveLatest } from "../core/versionResolver";
 import type { PackageVersions, VersionInfo } from "../types";
 import { getConfig } from "../utils/configuration";
 import { extractVersionNumber } from "../utils/dependencyUtils";
@@ -146,14 +146,22 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 			"section" in dep
 				? dep.versionSpecifier
 				: dep.versionSpecifier.replace(/\\+$/, "");
-		const resolved = resolve(raw.versions, specifier, showPrerelease);
+		const resolved = resolveLatest(raw.versions, specifier, showPrerelease);
 		return resolved.found ? resolved.version! : null;
+	}
+
+	/** Wildcard pins that already cover the latest release need no rewrite */
+	private isCovered(dep: AnyDependency, latest: string): boolean {
+		return isCoveredBySpecifier(latest, dep.versionSpecifier);
 	}
 
 	async resolveCodeLens(
 		codeLens: vscode.CodeLens,
 		_token: vscode.CancellationToken,
 	): Promise<vscode.CodeLens> {
+		console.error(
+			`[UAT-PROBE] resolveCodeLens entered; instanceof=${codeLens instanceof DependencyCodeLens}, ctor=${(codeLens as any)?.constructor?.name}`,
+		);
 		if (!(codeLens instanceof DependencyCodeLens)) {
 			return codeLens;
 		}
@@ -223,7 +231,10 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 					arguments: [dep.packageName, "no-compatible"],
 					tooltip: `${dep.packageName}: no version satisfies ${dep.versionSpecifier || "(any)"}`,
 				};
-			} else if (currentVersion === latestVersion) {
+			} else if (
+				currentVersion === latestVersion ||
+				this.isCovered(dep, latestVersion)
+			) {
 				codeLens.command = {
 					title: `$(check-all) ${t("upToDate")}`,
 					command: "pyDepsHint.showUpToDate",
@@ -344,7 +355,12 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 						config.showPrerelease,
 					);
 					const currentVersion = extractVersionNumber(dep.versionSpecifier);
-					if (latest && currentVersion && currentVersion !== latest) {
+					if (
+						latest &&
+						currentVersion &&
+						currentVersion !== latest &&
+						!this.isCovered(dep, latest)
+					) {
 						updatesAvailable++;
 					}
 				}

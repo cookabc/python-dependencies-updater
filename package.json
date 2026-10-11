@@ -155,18 +155,19 @@
     "publish:vsx": "./publish.sh vsx",
     "publish:ovsx": "./publish.sh ovsx",
     "publish:all": "./publish.sh all",
-    "prepare": "husky"
+    "prepare": "husky",
+    "uat": "npm run compile && node esbuild.js && node scripts/uat.mjs"
   },
   "dependencies": {
     "@iarna/toml": "^2.2.5"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.0.0",
     "@types/chai": "^4.3.11",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.10.0",
     "@types/vscode": "^1.85.0",
-    "@biomejs/biome": "^2.0.0",
-    "@vscode/test-electron": "^2.5.2",
+    "@vscode/test-electron": "^3.1.0",
     "chai": "^4.3.10",
     "esbuild": "^0.25.0",
     "fast-check": "^3.14.0",

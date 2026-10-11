@@ -291,3 +291,44 @@ export function resolve(
 		version: candidates[0],
 	};
 }
+
+/**
+ * Resolve the version to suggest for an update.
+ *
+ * Range constraints (>=, ~=, wildcards, upper bounds) are honoured — a pin
+ * like ">=2.0,<3.0" must never be pushed to 4.x. A bare exact pin ("==2.0.0")
+ * has no upper bound to respect: its whole purpose is to be bumped, so the
+ * suggestion is the absolute latest (pre-releases still filtered unless
+ * requested).
+ */
+export function resolveLatest(
+	versions: string[],
+	specifier: string,
+	includePrerelease: boolean = false,
+): ResolveResult {
+	const constraints = parseSpecifier(specifier);
+	const isBareExactPin =
+		constraints.length === 1 &&
+		constraints[0].operator === "==" &&
+		!constraints[0].version.endsWith(".*");
+
+	if (isBareExactPin) {
+		return resolve(versions, "", includePrerelease);
+	}
+	return resolve(versions, specifier, includePrerelease);
+}
+
+/**
+ * True when `version` already satisfies a wildcard specifier, i.e. the pin
+ * ("==0.36.*") already covers the newest release and rewriting it to an
+ * exact version would only narrow the range.
+ */
+export function isCoveredBySpecifier(
+	version: string,
+	specifier: string,
+): boolean {
+	if (!specifier.includes(".*")) {
+		return false;
+	}
+	return satisfies(version, parseSpecifier(specifier));
+}

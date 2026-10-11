@@ -6,9 +6,11 @@
 import * as assert from "node:assert";
 import { parseDependencies } from "../../core/unifiedParser";
 import {
+	isCoveredBySpecifier,
 	isPrerelease,
 	parseSpecifier,
 	resolve,
+	resolveLatest,
 	satisfies,
 } from "../../core/versionResolver";
 import { filterInstallableVersions } from "../../providers/pypiClient";
@@ -132,6 +134,31 @@ describe("Regression: specifier semantics", () => {
 	it("supports === arbitrary equality", () => {
 		assert.strictEqual(satisfies("1.0.0", parseSpecifier("===1.0.0")), true);
 		assert.strictEqual(satisfies("1.0.0", parseSpecifier("===1.0")), false);
+	});
+});
+
+describe("Regression: update suggestion semantics", () => {
+	it("bumps bare exact pins to absolute latest", () => {
+		const result = resolveLatest(["2.0.0", "2.1.0"], "==2.0.0");
+		assert.strictEqual(result.found, true);
+		assert.strictEqual(result.version, "2.1.0");
+	});
+
+	it("keeps range constraints within their bounds", () => {
+		const result = resolveLatest(["2.0.0", "2.9.0", "3.0.0"], ">=2.0,<3.0");
+		assert.strictEqual(result.version, "2.9.0");
+	});
+
+	it("keeps wildcard constraints within their range", () => {
+		const result = resolveLatest(["1.2.0", "1.2.9", "1.3.0"], "==1.2.*");
+		assert.strictEqual(result.version, "1.2.9");
+	});
+
+	it("treats a wildcard pin covering the latest as up to date", () => {
+		assert.strictEqual(isCoveredBySpecifier("0.36.3", "==0.36.*"), true);
+		assert.strictEqual(isCoveredBySpecifier("0.37.2", "==0.36.*"), false);
+		assert.strictEqual(isCoveredBySpecifier("2.1.0", "==2.0.0"), false);
+		assert.strictEqual(isCoveredBySpecifier("2.1.0", ">=2.0"), false);
 	});
 });
 

@@ -1,0 +1,6 @@
+[project]
+name = "uat-fixture"
+dependencies = ["flask>=2.0.0", "requests>=2.28.0"]
+
+[project.optional-dependencies]
+test = ["starlette==0.36.*", "yankedpkg>=1.0", "postpkg>=1.0", "ghostpkg>=1.0"]

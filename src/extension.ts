@@ -8,6 +8,7 @@ import { cacheManager } from "./core/cache";
 import type { AnyDependency } from "./core/unifiedParser";
 import { isSupportedFormat, parseDependencies } from "./core/unifiedParser";
 import { analyzeVersionUpdate } from "./core/versionAnalyzer";
+import { isCoveredBySpecifier } from "./core/versionResolver";
 import { PyDepsCodeLensProvider } from "./providers/codeLensProvider";
 import { PyDepsHoverProvider } from "./providers/hoverProvider";
 import { getLatestCompatible } from "./providers/versionService";
@@ -172,7 +173,11 @@ export function activate(context: vscode.ExtensionContext): void {
 						const currentVersion = extractVersionNumber(dep.versionSpecifier);
 						const newVersion = versionInfo.latestCompatible!;
 
-						if (currentVersion && currentVersion !== newVersion) {
+						if (
+							currentVersion &&
+							currentVersion !== newVersion &&
+							!isCoveredBySpecifier(newVersion, dep.versionSpecifier)
+						) {
 							const analysis = analyzeVersionUpdate(currentVersion, newVersion);
 
 							if (analysis.riskLevel === "high") {
