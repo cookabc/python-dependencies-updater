@@ -5,12 +5,15 @@ Smart version management for Python requirements.txt and pyproject.toml files wi
 [![Marketplace Version](https://vsmarketplacebadges.dev/version/cookabc.python-dependencies-updater.svg)](https://marketplace.visualstudio.com/items?itemName=cookabc.python-dependencies-updater)
 [![Downloads](https://vsmarketplacebadges.dev/downloads-short/cookabc.python-dependencies-updater.svg)](https://marketplace.visualstudio.com/items?itemName=cookabc.python-dependencies-updater)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![CI](https://github.com/cookabc/python-dependencies-updater/actions/workflows/ci.yml/badge.svg)](https://github.com/cookabc/python-dependencies-updater/actions/workflows/ci.yml)
 
 ## ✨ Features
 
 - 🔍 **Smart Version Detection** - Automatically detects `requirements.txt` and `pyproject.toml` files and displays version information
 - 🎯 **Risk Analysis** - Distinguishes between safe updates (patch/minor) and risky updates (major versions)
 - 🖱️ **One-Click Updates** - Click on version hints to update to the latest version instantly
+- 🧠 **Constraint-Aware Suggestions** - Suggestions respect each dependency's own specifier (`==`, `>=`, `~=`, `==1.2.*` wildcards, environment markers)
+- 💬 **Hover Details** - Hover a dependency to see its PyPI summary and latest version
 - ⚠️ **Safety Confirmation** - Shows confirmation dialogs for major version updates to prevent breaking changes
 - 📊 **Status Bar Display** - Real-time display of updatable package count
 - 🌍 **Multi-language Support** - Supports Chinese, English, Japanese, Korean, and more languages
@@ -62,6 +65,7 @@ code --install-extension cookabc.python-dependencies-updater
 | `pyDepsHint.showPrerelease`   | `false` | Include pre-release versions          |
 | `pyDepsHint.cacheTTLMinutes`  | `60`    | Cache TTL in minutes                  |
 | `pyDepsHint.supportPyProject` | `true`  | Enable/disable pyproject.toml support |
+| `pyDepsHint.registryUrl`      | `https://pypi.org` | Custom registry exposing the PyPI JSON API |
 
 ## 🏗️ Project Structure
 
@@ -132,6 +136,8 @@ dev = [
 ```
 
 The extension will automatically detect `pyproject.toml` files and provide the same smart version checking and update capabilities as for `requirements.txt` files.
+
+Scope notes: only PEP 621 tables (`[project]` / `[project.optional-dependencies]`) are parsed — Poetry's `[tool.poetry.dependencies]` is not supported yet. Both multi-line and single-line dependency arrays work; each dependency is updated in place without touching its neighbours on the same line.
 
 ## � Publishing
 

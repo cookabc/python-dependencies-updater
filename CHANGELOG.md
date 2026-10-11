@@ -2,6 +2,33 @@
 
 All notable changes to the "Python Dependencies Updater" extension will be documented in this file.
 
+## [1.5.1] - 2026-10-11
+
+### Fixed
+
+- Updating a dependency inside a TOML single-line array no longer corrupts the
+  file (the whole-line regex used to match the `=` of the assignment first).
+- Files like `Cargo.toml` or `rust-toolchain.toml` are no longer misread as
+  Python dependency manifests; only `pyproject.toml` with a `[project]`
+  section is parsed.
+- Update suggestions now respect each dependency's own specifier
+  (`>=2.0,<3.0` stays below 3.0); wildcard constraints (`==1.2.*`), arbitrary
+  equality (`===`), and environment markers are handled.
+- Post-releases (`1.0.1.post1`) are no longer filtered out as pre-releases.
+- Releases with no files or only yanked files are never suggested.
+- "Update All" re-locates dependencies when the document changed while
+  versions were being fetched, so edits land on the right lines.
+- Failed version checks retry after 5 minutes instead of staying stuck;
+  changing settings (registry, prerelease, …) takes effect immediately.
+- The persisted cache survives window reloads again and is pruned after
+  30 days.
+
+### Changed
+
+- Tests run against compiled output (`npm test`), fixing the suite on
+  current Node versions; CI runs `npm ci`, biome check and the tests.
+- Major-update dialogs and the "skipped" notice are localized.
+
 ## [1.5.0] - 2026-02-28
 
 ### Added
