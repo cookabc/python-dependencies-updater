@@ -1,6 +1,8 @@
 /**
- * Test register script that provides a vscode module mock.
- * Required before tests so that modules importing 'vscode' don't fail.
+ * Test bootstrap that provides a vscode module mock.
+ * Compiled to out/test/register.js by `tsc -p ./` (see the `test` script);
+ * at runtime it rewrites resolution of "vscode" to the compiled mock so that
+ * modules importing 'vscode' can run outside the extension host.
  */
 const Module = require("node:module");
 const path = require("node:path");
@@ -13,7 +15,7 @@ Module._resolveFilename = function (
 	options: unknown,
 ) {
 	if (request === "vscode") {
-		return path.resolve(__dirname, "__mocks__", "vscode.ts");
+		return path.resolve(__dirname, "__mocks__", "vscode.js");
 	}
 	return originalResolveFilename.call(this, request, parent, isMain, options);
 };
