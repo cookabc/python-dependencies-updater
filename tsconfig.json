@@ -1,8 +1,10 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "module": "node16",
+    "moduleResolution": "node16",
     "target": "ES2022",
     "lib": ["ES2022"],
+    "types": ["node", "mocha"],
     "outDir": "out",
     "rootDir": "src",
     "sourceMap": true,
@@ -13,7 +15,7 @@
     "declaration": true,
     "declarationMap": true,
     "resolveJsonModule": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node16"
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "out"]
