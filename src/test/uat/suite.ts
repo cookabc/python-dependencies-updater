@@ -8,7 +8,9 @@ import * as path from "node:path";
 import * as vscode from "vscode";
 
 const PYPI = process.env.UAT_PYPI ?? "http://127.0.0.1:0";
-const FIXTURE = path.resolve(__dirname, "../../../scripts/uat-fixture");
+const FIXTURE =
+	process.env.UAT_FIXTURE ??
+	path.resolve(__dirname, "../../../scripts/uat-fixture");
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

@@ -1,188 +1,188 @@
 {
-  "name": "python-dependencies-updater",
-  "displayName": "Python Dependencies Updater",
-  "description": "Smart version management for Python requirements.txt and pyproject.toml files with one-click updates and breaking change detection",
-  "version": "1.5.1",
-  "publisher": "cookabc",
-  "license": "MIT",
-  "icon": "icon.png",
-  "homepage": "https://github.com/cookabc/python-dependencies-updater#readme",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/cookabc/python-dependencies-updater"
-  },
-  "bugs": {
-    "url": "https://github.com/cookabc/python-dependencies-updater/issues"
-  },
-  "galleryBanner": {
-    "color": "#1e1e1e",
-    "theme": "dark"
-  },
-  "engines": {
-    "vscode": "^1.85.0"
-  },
-  "categories": [
-    "Programming Languages",
-    "Other"
-  ],
-  "keywords": [
-    "python",
-    "requirements",
-    "pip",
-    "dependencies",
-    "version",
-    "update",
-    "package",
-    "manager",
-    "upgrade"
-  ],
-  "activationEvents": [
-    "workspaceContains:requirements.txt",
-    "workspaceContains:pyproject.toml"
-  ],
-  "main": "./dist/extension.js",
-  "contributes": {
-    "colors": [
-      {
-        "id": "pyDepsHint.upToDate",
-        "description": "%colors.upToDate%",
-        "defaults": {
-          "dark": "#4CAF50",
-          "light": "#2E7D32",
-          "highContrast": "#00FF00"
-        }
-      },
-      {
-        "id": "pyDepsHint.updateAvailable",
-        "description": "%colors.updateAvailable%",
-        "defaults": {
-          "dark": "#FF9800",
-          "light": "#F57C00",
-          "highContrast": "#FFFF00"
-        }
-      }
-    ],
-    "commands": [
-      {
-        "command": "pyDepsHint.updateVersion",
-        "title": "%command.updateVersion%"
-      },
-      {
-        "command": "pyDepsHint.updateAllVersions",
-        "title": "%command.updateAllVersions%"
-      },
-      {
-        "command": "pyDepsHint.showUpToDate",
-        "title": "%command.showUpToDate%"
-      },
-      {
-        "command": "pyDepsHint.openOnPyPI",
-        "title": "%command.openOnPyPI%"
-      }
-    ],
-    "configuration": {
-      "title": "%config.title%",
-      "properties": {
-        "pyDepsHint.enabled": {
-          "type": "boolean",
-          "default": true,
-          "description": "%config.enabled.description%"
-        },
-        "pyDepsHint.showPrerelease": {
-          "type": "boolean",
-          "default": false,
-          "description": "%config.showPrerelease.description%"
-        },
-        "pyDepsHint.cacheTTLMinutes": {
-          "type": "number",
-          "default": 60,
-          "description": "%config.cacheTTLMinutes.description%"
-        },
-        "pyDepsHint.supportPyProject": {
-          "type": "boolean",
-          "default": true,
-          "description": "%config.supportPyProject.description%"
-        },
-        "pyDepsHint.registryUrl": {
-          "type": "string",
-          "default": "https://pypi.org",
-          "description": "%config.registryUrl.description%"
-        }
-      }
+    "name": "python-dependencies-updater",
+    "displayName": "Python Dependencies Updater",
+    "description": "Smart version management for Python requirements.txt and pyproject.toml files with one-click updates and breaking change detection",
+    "version": "1.5.1",
+    "publisher": "cookabc",
+    "license": "MIT",
+    "icon": "icon.png",
+    "homepage": "https://github.com/cookabc/python-dependencies-updater#readme",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/cookabc/python-dependencies-updater"
     },
-    "languages": [
-      {
-        "id": "pip-requirements",
-        "aliases": [
-          "pip requirements",
-          "requirements.txt"
+    "bugs": {
+        "url": "https://github.com/cookabc/python-dependencies-updater/issues"
+    },
+    "galleryBanner": {
+        "color": "#1e1e1e",
+        "theme": "dark"
+    },
+    "engines": {
+        "vscode": "^1.85.0"
+    },
+    "categories": [
+        "Programming Languages",
+        "Other"
+    ],
+    "keywords": [
+        "python",
+        "requirements",
+        "pip",
+        "dependencies",
+        "version",
+        "update",
+        "package",
+        "manager",
+        "upgrade"
+    ],
+    "activationEvents": [
+        "workspaceContains:requirements.txt",
+        "workspaceContains:pyproject.toml"
+    ],
+    "main": "./dist/extension.js",
+    "contributes": {
+        "colors": [
+            {
+                "id": "pyDepsHint.upToDate",
+                "description": "%colors.upToDate%",
+                "defaults": {
+                    "dark": "#4CAF50",
+                    "light": "#2E7D32",
+                    "highContrast": "#00FF00"
+                }
+            },
+            {
+                "id": "pyDepsHint.updateAvailable",
+                "description": "%colors.updateAvailable%",
+                "defaults": {
+                    "dark": "#FF9800",
+                    "light": "#F57C00",
+                    "highContrast": "#FFFF00"
+                }
+            }
         ],
-        "filenames": [
-          "requirements.txt",
-          "requirements-dev.txt",
-          "requirements-test.txt",
-          "requirements-prod.txt"
+        "commands": [
+            {
+                "command": "pyDepsHint.updateVersion",
+                "title": "%command.updateVersion%"
+            },
+            {
+                "command": "pyDepsHint.updateAllVersions",
+                "title": "%command.updateAllVersions%"
+            },
+            {
+                "command": "pyDepsHint.showUpToDate",
+                "title": "%command.showUpToDate%"
+            },
+            {
+                "command": "pyDepsHint.openOnPyPI",
+                "title": "%command.openOnPyPI%"
+            }
         ],
-        "configuration": "./language-configuration.json"
-      },
-      {
-        "id": "toml",
-        "aliases": [
-          "pyproject.toml",
-          "TOML"
-        ],
-        "extensions": [
-          ".toml"
-        ],
-        "filenames": [
-          "pyproject.toml"
-        ],
-        "configuration": "./language-configuration.json"
-      }
-    ]
-  },
-  "scripts": {
-    "vscode:prepublish": "npm run esbuild-base -- --production",
-    "esbuild-base": "node esbuild.js",
-    "esbuild": "npm run esbuild-base -- --sourcemap",
-    "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile",
-    "test": "mocha 'out/test/unit/**/*.test.js'",
-    "format": "biome format --write src",
-    "lint": "biome check --write src",
-    "publish:vsx": "./publish.sh vsx",
-    "publish:ovsx": "./publish.sh ovsx",
-    "publish:all": "./publish.sh all",
-    "prepare": "husky",
-    "uat": "npm run compile && node esbuild.js && node scripts/uat.mjs"
-  },
-  "dependencies": {
-    "@iarna/toml": "^2.2.5"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.5.15",
-    "@types/chai": "^5.2.3",
-    "@types/mocha": "^10.0.10",
-    "@types/node": "^26.6.5",
-    "@types/vscode": "^1.140.0",
-    "@vscode/test-electron": "^3.1.0",
-    "chai": "^6.3.0",
-    "esbuild": "^0.28.2",
-    "fast-check": "^4.10.2",
-    "husky": "^9.1.7",
-    "lint-staged": "^17.6.0",
-    "mocha": "^12.0.3",
-    "ts-node": "^10.9.2",
-    "typescript": "^7.0.2"
-  },
-  "lint-staged": {
-    "*.ts": [
-      "npx @biomejs/biome check --write --no-errors-on-unmatched"
-    ]
-  },
-  "allowScripts": {
-    "esbuild@0.28.2": true
-  }
+        "configuration": {
+            "title": "%config.title%",
+            "properties": {
+                "pyDepsHint.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "%config.enabled.description%"
+                },
+                "pyDepsHint.showPrerelease": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "%config.showPrerelease.description%"
+                },
+                "pyDepsHint.cacheTTLMinutes": {
+                    "type": "number",
+                    "default": 60,
+                    "description": "%config.cacheTTLMinutes.description%"
+                },
+                "pyDepsHint.supportPyProject": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "%config.supportPyProject.description%"
+                },
+                "pyDepsHint.registryUrl": {
+                    "type": "string",
+                    "default": "https://pypi.org",
+                    "description": "%config.registryUrl.description%"
+                }
+            }
+        },
+        "languages": [
+            {
+                "id": "pip-requirements",
+                "aliases": [
+                    "pip requirements",
+                    "requirements.txt"
+                ],
+                "filenames": [
+                    "requirements.txt",
+                    "requirements-dev.txt",
+                    "requirements-test.txt",
+                    "requirements-prod.txt"
+                ],
+                "configuration": "./language-configuration.json"
+            },
+            {
+                "id": "toml",
+                "aliases": [
+                    "pyproject.toml",
+                    "TOML"
+                ],
+                "extensions": [
+                    ".toml"
+                ],
+                "filenames": [
+                    "pyproject.toml"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ]
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run esbuild-base -- --production",
+        "esbuild-base": "node esbuild.js",
+        "esbuild": "npm run esbuild-base -- --sourcemap",
+        "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile",
+        "test": "mocha 'out/test/unit/**/*.test.js'",
+        "format": "biome format --write src",
+        "lint": "biome check --write src",
+        "publish:vsx": "./publish.sh vsx",
+        "publish:ovsx": "./publish.sh ovsx",
+        "publish:all": "./publish.sh all",
+        "prepare": "husky",
+        "uat": "npm run compile && node esbuild.js && node scripts/uat.mjs"
+    },
+    "dependencies": {
+        "@iarna/toml": "^2.2.5"
+    },
+    "devDependencies": {
+        "@biomejs/biome": "^2.6.2",
+        "@types/chai": "^5.2.3",
+        "@types/mocha": "^10.0.10",
+        "@types/node": "^26.6.5",
+        "@types/vscode": "^1.140.0",
+        "@vscode/test-electron": "^3.1.0",
+        "chai": "^6.3.0",
+        "esbuild": "^0.28.2",
+        "fast-check": "^4.10.2",
+        "husky": "^9.1.7",
+        "lint-staged": "^17.6.0",
+        "mocha": "^12.0.3",
+        "ts-node": "^10.9.2",
+        "typescript": "^7.0.2"
+    },
+    "lint-staged": {
+        "*.ts": [
+            "npx @biomejs/biome check --write --no-errors-on-unmatched"
+        ]
+    },
+    "allowScripts": {
+        "esbuild@0.28.2": true
+    }
 }
