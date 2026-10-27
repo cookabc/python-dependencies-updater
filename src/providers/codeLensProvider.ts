@@ -4,6 +4,7 @@
  */
 
 import * as vscode from "vscode";
+import { versionCacheKey } from "../core/packageName";
 import { type AnyDependency, parseDependencies } from "../core/unifiedParser";
 import { analyzeVersionUpdate } from "../core/versionAnalyzer";
 import { isCoveredBySpecifier, resolveLatest } from "../core/versionResolver";
@@ -14,6 +15,7 @@ import {
 	extractVersionNumber,
 	hasVersionConstraint,
 	shouldOfferVersionUpdate,
+	specifierForResolution,
 } from "../utils/dependencyUtils";
 import { t } from "../utils/i18n";
 import { Logger } from "../utils/logger";
@@ -76,8 +78,38 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 		this.pendingFetches.clear();
 	}
 
+	/**
+	 * Drop a closed document so its dependencies no longer inflate the
+	 * status bar. The version cache is kept: another open file may use it.
+	 */
+	public forgetDocument(uri: vscode.Uri): void {
+		this.dependencyCache.delete(uri.toString());
+		this.updateStatusBar();
+	}
+
 	private cacheKey(packageName: string, registryUrl: string): string {
-		return `${registryUrl.replace(/\/+$/, "")}|${packageName.toLowerCase()}`;
+		return versionCacheKey(packageName, registryUrl);
+	}
+
+	private openDocumentUris(): Set<string> | null {
+		const documents = vscode.workspace.textDocuments;
+		if (!documents) {
+			return null;
+		}
+		return new Set(documents.map((document) => document.uri.toString()));
+	}
+
+	/** Closed documents are not part of the status total. */
+	private evictClosedDocuments(): void {
+		const open = this.openDocumentUris();
+		if (!open) {
+			return;
+		}
+		for (const uri of this.dependencyCache.keys()) {
+			if (!open.has(uri)) {
+				this.dependencyCache.delete(uri);
+			}
+		}
 	}
 
 	provideCodeLenses(
@@ -139,7 +171,25 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 				}),
 			);
 		}
+
+		// Re-opening a file hits the version cache without a new fetch.
+		// Refresh the status bar then, so a document that was closed and
+		// reopened is counted again. Skip the first paint, before any
+		// lookup has succeeded, so the bar does not flash "0 up to date".
+		if (this.hasResolvedVersion(dependencies, config.registryUrl)) {
+			this.updateStatusBar();
+		}
 		return codeLenses;
+	}
+
+	private hasResolvedVersion(
+		dependencies: AnyDependency[],
+		registryUrl: string,
+	): boolean {
+		return dependencies.some((dep) => {
+			const key = this.cacheKey(dep.packageName.split("[")[0], registryUrl);
+			return this.versionCache.get(key)?.status === "success";
+		});
 	}
 
 	/**
@@ -151,11 +201,11 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 		raw: PackageVersions,
 		showPrerelease: boolean,
 	): string | null {
-		const specifier =
-			"section" in dep
-				? dep.versionSpecifier
-				: dep.versionSpecifier.replace(/\\+$/, "");
-		const resolved = resolveLatest(raw.versions, specifier, showPrerelease);
+		const resolved = resolveLatest(
+			raw.versions,
+			specifierForResolution(dep),
+			showPrerelease,
+		);
 		return resolved.found ? resolved.version! : null;
 	}
 
@@ -168,9 +218,6 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 		codeLens: vscode.CodeLens,
 		_token: vscode.CancellationToken,
 	): Promise<vscode.CodeLens> {
-		console.error(
-			`[UAT-PROBE] resolveCodeLens entered; instanceof=${codeLens instanceof DependencyCodeLens}, ctor=${(codeLens as any)?.constructor?.name}`,
-		);
 		if (!(codeLens instanceof DependencyCodeLens)) {
 			return codeLens;
 		}
@@ -341,6 +388,9 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 	}
 
 	private updateStatusBar(): void {
+		// Always drop closed files, even when no status bar is attached,
+		// so the dependency cache cannot grow for the life of the window.
+		this.evictClosedDocuments();
 		if (!this.statusBar) {
 			return;
 		}
@@ -349,13 +399,8 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 		let updatesAvailable = 0;
 		let totalChecked = 0;
 
-		for (const entry of this.versionCache.values()) {
-			if (entry.status === "success") {
-				totalChecked++;
-			}
-		}
-
-		// Count updates from the last known dependency set
+		// Only dependencies still in an open document. Historical files
+		// that were closed must not keep adding to the total.
 		for (const cached of this.dependencyCache.values()) {
 			for (const dep of cached.dependencies) {
 				const key = this.cacheKey(
@@ -364,6 +409,7 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 				);
 				const vEntry = this.versionCache.get(key);
 				if (vEntry?.status === "success" && vEntry.versions) {
+					totalChecked++;
 					const latest = this.resolveForDependency(
 						dep,
 						vEntry.versions,

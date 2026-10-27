@@ -4,19 +4,19 @@
  */
 
 import { cacheManager } from "../core/cache";
+import { versionCacheKey } from "../core/packageName";
 import { resolveLatest } from "../core/versionResolver";
 import type { PackageVersions, VersionInfo } from "../types";
 import { Logger } from "../utils/logger";
 import { fetchVersions } from "./pypiClient";
 
-const DEFAULT_REGISTRY = "https://pypi.org";
-
 /**
  * Cache key includes the registry so that switching registries cannot serve
- * data fetched from the previous one.
+ * data fetched from the previous one, and the package name is PEP 503
+ * normalized so `foo_bar` and `foo-bar` share one entry.
  */
 function cacheKey(packageName: string, registryUrl?: string): string {
-	return `${(registryUrl || DEFAULT_REGISTRY).replace(/\/+$/, "")}|${packageName}`;
+	return versionCacheKey(packageName, registryUrl);
 }
 
 /**

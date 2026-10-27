@@ -70,4 +70,17 @@ describe("Version Analyzer", () => {
 		assert.strictEqual(result.currentVersion, "1.2.3");
 		assert.strictEqual(result.latestVersion, "1.2.4");
 	});
+
+	it("treats an epoch change as a breaking update", () => {
+		const result = analyzeVersionUpdate("1.0.0", "1!1.0.0");
+		assert.strictEqual(result.updateType, "major");
+		assert.strictEqual(result.riskLevel, "high");
+		assert.strictEqual(result.isBreakingChange, true);
+	});
+
+	it("keeps release comparison inside the same epoch", () => {
+		const result = analyzeVersionUpdate("1!1.0.0", "1!1.1.0");
+		assert.strictEqual(result.updateType, "minor");
+		assert.strictEqual(result.riskLevel, "medium");
+	});
 });

@@ -71,6 +71,7 @@ export const window = {
 };
 
 export const workspace = {
+	textDocuments: [] as Array<{ uri: { toString(): string } }>,
 	getConfiguration: (_section?: string) => ({
 		get: <T>(_key: string, defaultValue?: T) => defaultValue,
 	}),

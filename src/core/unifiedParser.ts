@@ -56,17 +56,8 @@ export function detectFileType(
 		return { type: FileType.PyProject, isValid: false, confidence: 0.0 };
 	}
 
-	if (
-		/requirements.*\.txt$/.test(fileName) ||
-		fileName.endsWith(".requirements")
-	) {
-		// For requirements.txt, we assume it's valid if it doesn't contain TOML syntax
-		if (!content.includes("[") || !content.includes("]")) {
-			return { type: FileType.Requirements, isValid: true, confidence: 0.9 };
-		}
-	}
-
-	// Content-based detection
+	// Content-based detection. Extras (`requests[security]`) also use brackets,
+	// so a `[` / `]` pair alone must not reject a requirements file.
 	const pyprojectIndicators = [
 		"[project]",
 		"[tool.",
@@ -79,12 +70,22 @@ export function detectFileType(
 		return content.includes(indicator);
 	});
 
+	if (
+		/requirements.*\.txt$/.test(fileName) ||
+		fileName.endsWith(".requirements")
+	) {
+		if (!hasPyProjectIndicators) {
+			return { type: FileType.Requirements, isValid: true, confidence: 0.9 };
+		}
+	}
+
 	if (hasPyProjectIndicators) {
 		return { type: FileType.PyProject, isValid: true, confidence: 0.95 };
 	}
 
-	// Default to requirements.txt if it looks like a Python requirements file
-	if (content.match(/^[a-zA-Z0-9._-]+\s*[=<>!]/m)) {
+	// Default to requirements.txt if it looks like a Python requirements file.
+	// Extras may sit between the name and the operator (`pkg[extra]>=1`).
+	if (content.match(/^[a-zA-Z0-9._-]+(?:\[[^\]]*\])?\s*[=<>!~^]/m)) {
 		return { type: FileType.Requirements, isValid: true, confidence: 0.8 };
 	}
 

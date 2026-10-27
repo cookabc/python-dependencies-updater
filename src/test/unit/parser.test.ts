@@ -35,5 +35,12 @@ describe("Unified Parser", () => {
 			const result = detectFileType("random.file", content);
 			assert.strictEqual(result.type, FileType.PyProject);
 		});
+
+		it("accepts a requirements file whose only lines use extras", () => {
+			const content = "requests[security]>=2.0\n";
+			const result = detectFileType("requirements.txt", content);
+			assert.strictEqual(result.type, FileType.Requirements);
+			assert.strictEqual(result.isValid, true);
+		});
 	});
 });

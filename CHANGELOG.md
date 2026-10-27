@@ -6,6 +6,21 @@ All notable changes to the "Python Dependencies Updater" extension will be docum
 
 ### Fixed
 
+- "Update All" plans safe updates from the document text after the registry
+  requests return. Inserting or deleting lines while versions load no longer
+  makes a patch bump land on the wrong line. Risky updates use that same
+  relocation, including edits made during the confirmation dialog.
+- Removed the `[UAT-PROBE]` log that `resolveCodeLens` wrote on every lens.
+- A requirements file whose lines all use extras (`requests[security]>=2.0`)
+  is parsed again. Brackets in an extra are not treated as a TOML table.
+- Version ordering follows PEP 440. `1.0.0rc1.post1` is less than `1.0.0`,
+  an epoch such as `1!1.0` sorts above `2.0`, and `1.0rc1+cpu` is a
+  pre-release. An epoch change is reported as a major update.
+- Package cache keys are PEP 503-normalized, so `foo_bar` and `foo-bar`
+  share one entry. Closing a requirements file drops it from the dependency
+  cache and from the status-bar total. Hover uses the same specifier-aware
+  resolution as the CodeLens.
+
 - Upgrading a multi-constraint requirement now bumps only the lower bound or
   pin. `requests>=2.0,<3.0` keeps its upper bound, `foo!=1.5,>=1.0` keeps the
   exclusion, and `django~=4.2` keeps two-component precision instead of
