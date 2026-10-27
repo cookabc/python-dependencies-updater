@@ -2,6 +2,22 @@
 
 All notable changes to the "Python Dependencies Updater" extension will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- Upgrading a multi-constraint requirement now bumps only the lower bound or
+  pin. `requests>=2.0,<3.0` keeps its upper bound, `foo!=1.5,>=1.0` keeps the
+  exclusion, and `django~=4.2` keeps two-component precision instead of
+  becoming `~=4.2.16`.
+- Updating `pytest` in a one-line `pyproject.toml` array no longer rewrites
+  `pytest-cov` when the names share a prefix.
+- Bare packages, marker-only lines (`requests ; python_version >= "3.8"`) and
+  PEP 508 direct references (`pkg @ https://...`) no longer show an Update
+  lens, and a marker's comparison is never written as the package version.
+- `@types/vscode` is pinned to 1.85.0 so packaging succeeds with
+  `engines.vscode` `^1.85.0`. CI runs `vsce package`.
+
 ## [1.5.1] - 2026-10-11
 
 ### Fixed

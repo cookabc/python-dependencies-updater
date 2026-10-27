@@ -17,3 +17,5 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: npx @biomejs/biome check src
       - run: npm test
+      - name: Package VSIX
+        run: npx @vscode/vsce package

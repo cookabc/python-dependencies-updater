@@ -28,7 +28,7 @@ This is a **VS Code Extension** that provides smart version management for Pytho
 - `mocha` (^10.2.0) + `chai` (^4.3.10) - Unit testing
 - `fast-check` (^3.14.0) - Property-based testing
 - `ts-node` (^10.9.2) - TypeScript execution for tests
-- `@types/vscode` (^1.85.0) - VS Code API types
+- `@types/vscode` (1.85.0, pinned) - VS Code API types. Must not exceed the `engines.vscode` minor (`^1.85.0`); a newer types range fails `vsce package`.
 
 ## Build and Development Commands
 

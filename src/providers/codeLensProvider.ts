@@ -9,7 +9,12 @@ import { analyzeVersionUpdate } from "../core/versionAnalyzer";
 import { isCoveredBySpecifier, resolveLatest } from "../core/versionResolver";
 import type { PackageVersions, VersionInfo } from "../types";
 import { getConfig } from "../utils/configuration";
-import { extractVersionNumber } from "../utils/dependencyUtils";
+import {
+	classifyVersionLens,
+	extractVersionNumber,
+	hasVersionConstraint,
+	shouldOfferVersionUpdate,
+} from "../utils/dependencyUtils";
 import { t } from "../utils/i18n";
 import { Logger } from "../utils/logger";
 import type { StatusBarManager } from "../utils/statusBar";
@@ -115,9 +120,13 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 				dep.endColumn,
 			);
 
-			// Create placeholder CodeLens for version info
-			const versionLens = new DependencyCodeLens(range, dep, document);
-			codeLenses.push(versionLens);
+			// Bare names, marker-only requirements and PEP 508 direct references
+			// have nothing to bump. Skip the version lens entirely so they
+			// never resolve into an "Update" action.
+			if (hasVersionConstraint(dep.versionSpecifier)) {
+				const versionLens = new DependencyCodeLens(range, dep, document);
+				codeLenses.push(versionLens);
+			}
 
 			// "Open on PyPI" lens (added immediately as it's static)
 			const packageNameWithoutExtras = dep.packageName.split("[")[0];
@@ -221,6 +230,11 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 				config.showPrerelease,
 			);
 			const currentVersion = extractVersionNumber(dep.versionSpecifier);
+			const lensKind = classifyVersionLens(dep.versionSpecifier, latestVersion);
+
+			if (lensKind === "hidden") {
+				return codeLens;
+			}
 
 			if (!latestVersion) {
 				// The dependency's own constraint matches nothing newer/valid —
@@ -232,6 +246,7 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 					tooltip: `${dep.packageName}: no version satisfies ${dep.versionSpecifier || "(any)"}`,
 				};
 			} else if (
+				lensKind === "up-to-date" ||
 				currentVersion === latestVersion ||
 				this.isCovered(dep, latestVersion)
 			) {
@@ -354,11 +369,9 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 						vEntry.versions,
 						config.showPrerelease,
 					);
-					const currentVersion = extractVersionNumber(dep.versionSpecifier);
 					if (
 						latest &&
-						currentVersion &&
-						currentVersion !== latest &&
+						shouldOfferVersionUpdate(dep.versionSpecifier, latest) &&
 						!this.isCovered(dep, latest)
 					) {
 						updatesAvailable++;

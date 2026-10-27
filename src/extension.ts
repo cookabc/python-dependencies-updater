@@ -15,9 +15,9 @@ import { getLatestCompatible } from "./providers/versionService";
 import type { VersionAnalysis } from "./types";
 import { getConfig, onConfigChange } from "./utils/configuration";
 import {
-	buildVersionReplacement,
-	extractVersionFromLine,
 	extractVersionNumber,
+	planLineUpdate,
+	shouldOfferVersionUpdate,
 } from "./utils/dependencyUtils";
 import { t } from "./utils/i18n";
 import { Logger } from "./utils/logger";
@@ -51,18 +51,26 @@ export function activate(context: vscode.ExtensionContext): void {
 			const isTOML = document.languageId === "toml";
 
 			// Search from the dependency's own column: several dependencies can
-			// share one line in a TOML single-line array, and the assignment "="
-			// would otherwise match first and corrupt the file.
-			const match = extractVersionFromLine(lineText, isTOML, startColumn ?? 0);
-			const currentVersion = match ? match.version : "";
+			// share one line in a TOML single-line array. Marker-only lines,
+			// bare names and URL references have no version to rewrite — return
+			// before any Major warning so confirming does not touch the marker.
+			const planned = planLineUpdate(
+				lineText,
+				newVersion,
+				isTOML,
+				startColumn ?? 0,
+			);
+			if (!planned) {
+				return;
+			}
 
-			// Analyze update risk
-			const analysis = analyzeVersionUpdate(currentVersion, newVersion);
+			// Analyze update risk against the floor/pin, not an exclusion or marker.
+			const analysis = analyzeVersionUpdate(planned.currentVersion, newVersion);
 
 			// Show confirmation for major updates
 			if (analysis.riskLevel === "high") {
 				const choice = await vscode.window.showWarningMessage(
-					`⚠️ ${t("majorUpdateDetected")}\n\n${packageName}: ${currentVersion} → ${newVersion}\n\n${t("continueQuestion")}`,
+					`⚠️ ${t("majorUpdateDetected")}\n\n${packageName}: ${planned.currentVersion} → ${newVersion}\n\n${t("continueQuestion")}`,
 					{ modal: true },
 					t("updateAnyway"),
 				);
@@ -72,28 +80,20 @@ export function activate(context: vscode.ExtensionContext): void {
 				}
 			}
 
-			if (match) {
-				const replacement = buildVersionReplacement(
-					lineText,
-					newVersion,
-					isTOML,
-					match,
-				);
-				const range = new vscode.Range(
-					line,
-					match.startIndex,
-					line,
-					match.endIndex,
-				);
+			const range = new vscode.Range(
+				line,
+				planned.match.startIndex,
+				line,
+				planned.match.endIndex,
+			);
 
-				const edit = new vscode.WorkspaceEdit();
-				edit.replace(document.uri, range, replacement);
-				await vscode.workspace.applyEdit(edit);
+			const edit = new vscode.WorkspaceEdit();
+			edit.replace(document.uri, range, planned.replacement);
+			await vscode.workspace.applyEdit(edit);
 
-				vscode.window.showInformationMessage(
-					`${t("updated")} ${packageName} ${t("updateTo")} ${newVersion}`,
-				);
-			}
+			vscode.window.showInformationMessage(
+				`${t("updated")} ${packageName} ${t("updateTo")} ${newVersion}`,
+			);
 		},
 	);
 
@@ -176,7 +176,8 @@ export function activate(context: vscode.ExtensionContext): void {
 						if (
 							currentVersion &&
 							currentVersion !== newVersion &&
-							!isCoveredBySpecifier(newVersion, dep.versionSpecifier)
+							!isCoveredBySpecifier(newVersion, dep.versionSpecifier) &&
+							shouldOfferVersionUpdate(dep.versionSpecifier, newVersion)
 						) {
 							const analysis = analyzeVersionUpdate(currentVersion, newVersion);
 
@@ -190,26 +191,21 @@ export function activate(context: vscode.ExtensionContext): void {
 							} else {
 								const lineText = document.lineAt(dep.line).text;
 								const isTOML = document.languageId === "toml";
-								const match = extractVersionFromLine(
+								const planned = planLineUpdate(
 									lineText,
+									newVersion,
 									isTOML,
 									dep.startColumn,
 								);
 
-								if (match) {
-									const replacement = buildVersionReplacement(
-										lineText,
-										newVersion,
-										isTOML,
-										match,
-									);
+								if (planned) {
 									const range = new vscode.Range(
 										dep.line,
-										match.startIndex,
+										planned.match.startIndex,
 										dep.line,
-										match.endIndex,
+										planned.match.endIndex,
 									);
-									edit.replace(document.uri, range, replacement);
+									edit.replace(document.uri, range, planned.replacement);
 									safeUpdates++;
 								}
 							}
@@ -278,26 +274,21 @@ export function activate(context: vscode.ExtensionContext): void {
 							continue;
 						}
 						const lineText = document.lineAt(target.line).text;
-						const match = extractVersionFromLine(
+						const planned = planLineUpdate(
 							lineText,
+							update.newVersion,
 							isTOML,
 							target.startColumn,
 						);
 
-						if (match) {
-							const replacement = buildVersionReplacement(
-								lineText,
-								update.newVersion,
-								isTOML,
-								match,
-							);
+						if (planned) {
 							const range = new vscode.Range(
 								target.line,
-								match.startIndex,
+								planned.match.startIndex,
 								target.line,
-								match.endIndex,
+								planned.match.endIndex,
 							);
-							edit.replace(document.uri, range, replacement);
+							edit.replace(document.uri, range, planned.replacement);
 							confirmedRiskyUpdates++;
 						}
 					}
