@@ -1,6 +1,8 @@
 import * as assert from "node:assert";
 import {
 	compareVersions,
+	isPrerelease,
+	parseSpecifier,
 	parseVersion,
 	resolve,
 	satisfies,
@@ -77,6 +79,66 @@ describe("Version Resolver", () => {
 
 		it("should handle complex pre-release patterns", () => {
 			assert.strictEqual(compareVersions("1.0.0a1", "1.0.0.a1"), 0);
+		});
+
+		it("orders a pre-release post segment before the final release", () => {
+			// 1.0.0rc1.post1 is still an rc; the post segment only orders it
+			// among other rcs. It must not sort above 1.0.0.
+			assert.strictEqual(compareVersions("1.0.0rc1.post1", "1.0.0rc1"), 1);
+			assert.strictEqual(compareVersions("1.0.0rc1.post1", "1.0.0"), -1);
+			assert.strictEqual(compareVersions("1.0.0rc1.post1", "1.0.0rc2"), -1);
+		});
+
+		it("orders epochs ahead of the release numbers", () => {
+			assert.strictEqual(compareVersions("1!1.0", "2.0"), 1);
+			assert.strictEqual(compareVersions("1!0.1", "2020.1"), 1);
+			assert.strictEqual(compareVersions("1!1.0", "1!2.0"), -1);
+			assert.strictEqual(compareVersions("1!9.9", "2!0.1"), -1);
+			assert.strictEqual(compareVersions("1.0", "1!1.0"), -1);
+		});
+
+		it("orders local versions after the plain release", () => {
+			assert.strictEqual(compareVersions("1.0", "1.0+cpu"), -1);
+			assert.strictEqual(compareVersions("1.0+aaa", "1.0+abc"), -1);
+			assert.strictEqual(compareVersions("1.0+abc", "1.0+1"), -1);
+			assert.strictEqual(compareVersions("1.0+ubuntu-1", "1.0+ubuntu.1"), 0);
+			assert.strictEqual(compareVersions("1.0+5", "1.0+5.0"), -1);
+		});
+
+		it("treats separator and spelling aliases as the same version", () => {
+			assert.strictEqual(compareVersions("1.0a1", "1.0.alpha.1"), 0);
+			assert.strictEqual(compareVersions("1.0c1", "1.0rc1"), 0);
+			assert.strictEqual(compareVersions("1.0pre1", "1.0preview1"), 0);
+			assert.strictEqual(compareVersions("1.0-1", "1.0.post1"), 0);
+			assert.strictEqual(compareVersions("1.0r1", "1.0.rev1"), 0);
+			assert.strictEqual(compareVersions("v1.0.0", "1.0"), 0);
+		});
+
+		it("follows the PEP 440 version ordering examples", () => {
+			const ordered = [
+				"1.0.dev456",
+				"1.0a1",
+				"1.0a2.dev456",
+				"1.0a12.dev456",
+				"1.0a12",
+				"1.0b1.dev456",
+				"1.0b2",
+				"1.0b2.post345.dev456",
+				"1.0b2.post345",
+				"1.0rc1.dev456",
+				"1.0rc1",
+				"1.0",
+				"1.0.post456.dev34",
+				"1.0.post456",
+				"1.1.dev1",
+			];
+			for (let i = 0; i < ordered.length - 1; i++) {
+				assert.strictEqual(
+					compareVersions(ordered[i], ordered[i + 1]),
+					-1,
+					`${ordered[i]} should be < ${ordered[i + 1]}`,
+				);
+			}
 		});
 	});
 
@@ -204,6 +266,72 @@ describe("Version Resolver", () => {
 			const result = resolve(versions, "~=1.4.0");
 			assert.strictEqual(result.found, true);
 			assert.strictEqual(result.version, "1.4.5");
+		});
+
+		it("requires the same epoch for a compatible release", () => {
+			assert.strictEqual(satisfies("1!1.5", parseSpecifier("~=1!1.0")), true);
+			assert.strictEqual(satisfies("1.5", parseSpecifier("~=1!1.0")), false);
+			assert.strictEqual(satisfies("2!1.5", parseSpecifier("~=1!1.0")), false);
+		});
+	});
+
+	describe("PEP 440 pre-release and local versions", () => {
+		it("sees a pre-release hidden by a local label", () => {
+			assert.strictEqual(isPrerelease("1.0rc1+cpu"), true);
+			assert.strictEqual(isPrerelease("1.0.0rc1.post1"), true);
+			assert.strictEqual(isPrerelease("1.0.0.post1.dev1"), true);
+			assert.strictEqual(isPrerelease("1.0+cpu"), false);
+			assert.strictEqual(isPrerelease("1.0.0.post1"), false);
+		});
+
+		it("does not suggest a local pre-release over the final release", () => {
+			const result = resolve(
+				["1.0rc1+cpu", "1.0.0rc1.post1", "1.0.0", "1.0+cpu"],
+				"",
+			);
+			assert.strictEqual(result.found, true);
+			assert.strictEqual(result.version, "1.0+cpu");
+		});
+
+		it("picks the highest epoch", () => {
+			const result = resolve(["2020.1", "2.0.0", "1!0.1"], "");
+			assert.strictEqual(result.version, "1!0.1");
+		});
+
+		it("strips the epoch before exposing release numbers", () => {
+			assert.deepStrictEqual(parseVersion("1!2.1.0"), [2, 1, 0]);
+			assert.deepStrictEqual(parseVersion("v1.2.3"), [1, 2, 3]);
+		});
+
+		it("ignores local versions on == unless the specifier has one", () => {
+			assert.strictEqual(
+				satisfies("1.2.3+cpu", parseSpecifier("==1.2.3")),
+				true,
+			);
+			assert.strictEqual(
+				satisfies("1.2.3+cpu", parseSpecifier("==1.2.3+cpu")),
+				true,
+			);
+			assert.strictEqual(
+				satisfies("1.2.3+gpu", parseSpecifier("==1.2.3+cpu")),
+				false,
+			);
+			assert.strictEqual(
+				satisfies("1.2.3", parseSpecifier("==1.2.3+cpu")),
+				false,
+			);
+		});
+
+		it("matches wildcard prefixes only inside the same epoch", () => {
+			assert.strictEqual(
+				satisfies("1!1.2.3", parseSpecifier("==1.2.*")),
+				false,
+			);
+			assert.strictEqual(
+				satisfies("1!1.2.3", parseSpecifier("==1!1.2.*")),
+				true,
+			);
+			assert.strictEqual(satisfies("1.2", parseSpecifier("==1.2.0.*")), true);
 		});
 	});
 });

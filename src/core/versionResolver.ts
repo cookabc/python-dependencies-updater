@@ -1,131 +1,45 @@
 /**
  * Version Resolver for Python package versions
  * Validates: Requirements 4.1, 4.2, 4.3, 4.4, 4.5, 4.6
+ *
+ * Ordering and pre-release detection follow PEP 440 (epochs, pre/post/dev,
+ * local versions). See pep440.ts.
  */
 
 import type { ResolveResult, VersionConstraint } from "../types";
-
-// Pre-release identifiers
-// A pre-release segment (a/alpha/b/beta/c/rc/pre/preview/dev) with its number,
-// optionally followed by a .postN tail (PEP 440: X.Y.ZaN.postM is still a pre-release).
-// ".post" alone is a POST-release and must NOT match, so the tag has to be at the
-// end of the version (optionally closing with the post tail).
-const PRERELEASE_SUFFIX_REGEX =
-	/(?:a|alpha|b|beta|c|rc|pre|preview|dev)\d*(?:\.post\d*)?$/i;
-
-// Pre-compiled regexes for performance
-const VERSION_CLEAN_REGEX = /[a-zA-Z].*/g;
-const POST_REGEX = /post\.?(\d*)/;
-const DEV_REGEX = /dev\.?(\d*)/;
-const ALPHA_REGEX = /(?:^|[.\d\-_])(a|alpha)\.?(\d*)/;
-const BETA_REGEX = /(?:^|[.\d\-_])(b|beta)\.?(\d*)/;
-const RC_REGEX = /(?:^|[.\d\-_])(rc|pre|c)\.?(\d*)/;
+import {
+	comparePep440,
+	isPep440Prerelease,
+	parsePep440,
+	pep440SpecifierEqual,
+	releaseNumbers,
+} from "./pep440";
 
 /**
- * Check if a version string is a pre-release version
+ * Check if a version string is a pre-release version.
+ * Includes pre-releases that also carry a post or local segment
+ * (`1.0.0rc1.post1`, `1.0rc1+cpu`) and developmental releases.
+ * Post-only (`1.0.0.post1`) and local-only (`1.0+cpu`) releases are final.
  */
 export function isPrerelease(version: string): boolean {
-	return PRERELEASE_SUFFIX_REGEX.test(version.trim());
+	return isPep440Prerelease(version);
 }
 
 /**
- * Parse a version string into comparable parts
- * Returns array of numbers for comparison
+ * Parse a version string into its release numbers.
+ * Epoch and pre/post/dev/local segments are not included; at least three
+ * components are returned so major/minor/patch indexing stays stable.
  */
 export function parseVersion(version: string): number[] {
-	// Remove any pre-release suffix for numeric comparison
-	const cleanVersion = version.replace(VERSION_CLEAN_REGEX, "");
-	const parts = cleanVersion.split(".").map((p) => {
-		const num = parseInt(p, 10);
-		return Number.isNaN(num) ? 0 : num;
-	});
-
-	// Ensure at least 3 parts for comparison
-	while (parts.length < 3) {
-		parts.push(0);
-	}
-
-	return parts;
+	return releaseNumbers(version);
 }
 
 /**
- * Compare two version strings
- * Returns: -1 if a < b, 0 if a == b, 1 if a > b
+ * Compare two version strings per PEP 440.
+ * Returns: -1 if a < b, 0 if a == b, 1 if a > b.
  */
 export function compareVersions(a: string, b: string): number {
-	const partsA = parseVersion(a);
-	const partsB = parseVersion(b);
-
-	const maxLen = Math.max(partsA.length, partsB.length);
-
-	for (let i = 0; i < maxLen; i++) {
-		const numA = partsA[i] || 0;
-		const numB = partsB[i] || 0;
-
-		if (numA < numB) {
-			return -1;
-		}
-		if (numA > numB) {
-			return 1;
-		}
-	}
-
-	// If numeric parts are equal, compare based on pre-release/post-release status
-	// Priorities: dev < alpha < beta < rc < final < post
-	const infoA = getPrereleaseInfo(a);
-	const infoB = getPrereleaseInfo(b);
-
-	if (infoA.type !== infoB.type) {
-		return infoA.type < infoB.type ? -1 : 1;
-	}
-
-	if (infoA.number !== infoB.number) {
-		return infoA.number < infoB.number ? -1 : 1;
-	}
-
-	return 0;
-}
-
-/**
- * Extract pre-release information from version string
- * Returns type (0-5) and number for comparison
- */
-function getPrereleaseInfo(version: string): { type: number; number: number } {
-	const lower = version.toLowerCase();
-
-	// Check types in order of precedence or specific matching
-	// Order: dev (0) < alpha (1) < beta (2) < rc (3) < final (4) < post (5)
-
-	if (lower.includes("post")) {
-		const match = lower.match(POST_REGEX);
-		if (match) {
-			return { type: 5, number: match[1] ? parseInt(match[1], 10) : 0 };
-		}
-	}
-
-	if (lower.includes("dev")) {
-		const match = lower.match(DEV_REGEX);
-		if (match) {
-			return { type: 0, number: match[1] ? parseInt(match[1], 10) : 0 };
-		}
-	}
-
-	let match = lower.match(ALPHA_REGEX);
-	if (match) {
-		return { type: 1, number: match[2] ? parseInt(match[2], 10) : 0 };
-	}
-
-	match = lower.match(BETA_REGEX);
-	if (match) {
-		return { type: 2, number: match[2] ? parseInt(match[2], 10) : 0 };
-	}
-
-	match = lower.match(RC_REGEX);
-	if (match) {
-		return { type: 3, number: match[2] ? parseInt(match[2], 10) : 0 };
-	}
-
-	return { type: 4, number: 0 };
+	return comparePep440(a, b);
 }
 
 /**
@@ -159,21 +73,24 @@ export function parseSpecifier(specifier: string): VersionConstraint[] {
 }
 
 /**
- * Check if a version satisfies a wildcard constraint (==1.2.* / !=1.2.*)
- * Per PEP 440, prefix matching compares the numeric segments before the ".*"
+ * Check if a version satisfies a wildcard constraint (==1.2.* / !=1.2.*).
+ * Prefix matching compares epoch and the release segments before `.*`.
+ * Missing segments on the candidate are treated as 0 (`1.2` matches `==1.2.0.*`).
  */
 function satisfiesWildcard(
 	version: string,
 	constraint: VersionConstraint,
 ): boolean {
-	const prefix = constraint.version
-		.slice(0, -2)
-		.split(".")
-		.map((p) => parseInt(p, 10) || 0);
-	const versionParts = parseVersion(version);
-
-	for (let i = 0; i < prefix.length; i++) {
-		if ((versionParts[i] || 0) !== prefix[i]) {
+	const prefix = parsePep440(constraint.version.slice(0, -2));
+	const parsed = parsePep440(version);
+	if (!prefix || !parsed) {
+		return false;
+	}
+	if (prefix.epoch !== parsed.epoch) {
+		return false;
+	}
+	for (let i = 0; i < prefix.release.length; i++) {
+		if ((parsed.release[i] ?? 0) !== prefix.release[i]) {
 			return false;
 		}
 	}
@@ -196,15 +113,16 @@ function satisfiesConstraint(
 		return constraint.operator === "==" ? matched : !matched;
 	}
 
+	if (constraint.operator === "==" || constraint.operator === "!=") {
+		const equal = pep440SpecifierEqual(version, constraint.version);
+		return constraint.operator === "==" ? equal : !equal;
+	}
+
 	const cmp = compareVersions(version, constraint.version);
 
 	switch (constraint.operator) {
 		case "===":
 			return version.trim() === constraint.version.trim();
-		case "==":
-			return cmp === 0;
-		case "!=":
-			return cmp !== 0;
 		case ">=":
 			return cmp >= 0;
 		case "<=":
@@ -215,20 +133,25 @@ function satisfiesConstraint(
 			return cmp < 0;
 		case "~=": {
 			// Compatible release per PEP 440:
-			// ~=X.Y means >=X.Y, <(X+1).0
-			// ~=X.Y.Z means >=X.Y.Z, <X.(Y+1).0
+			// ~=X.Y means >=X.Y, ==X.*
+			// ~=X.Y.Z means >=X.Y.Z, ==X.Y.*
+			// Epochs must match; a `1!` release is not compatible with epoch 0.
 			if (cmp < 0) {
 				return false;
 			}
 
-			const constraintSegments = constraint.version
-				.split(".")
-				.map((p) => parseInt(p, 10) || 0);
-			const versionParts = parseVersion(version);
+			const constraintParsed = parsePep440(constraint.version);
+			const versionParsed = parsePep440(version);
+			if (!constraintParsed || !versionParsed) {
+				return false;
+			}
+			if (constraintParsed.epoch !== versionParsed.epoch) {
+				return false;
+			}
 
-			// Lock all segments except the last specified one
+			const constraintSegments = constraintParsed.release;
 			for (let i = 0; i < constraintSegments.length - 1; i++) {
-				if (versionParts[i] !== constraintSegments[i]) {
+				if ((versionParsed.release[i] ?? 0) !== constraintSegments[i]) {
 					return false;
 				}
 			}

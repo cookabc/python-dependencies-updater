@@ -4,15 +4,14 @@
  */
 
 import * as vscode from "vscode";
+import { type BatchUpdate, planRelocatedEdits } from "./core/batchUpdate";
 import { cacheManager } from "./core/cache";
-import type { AnyDependency } from "./core/unifiedParser";
 import { isSupportedFormat, parseDependencies } from "./core/unifiedParser";
 import { analyzeVersionUpdate } from "./core/versionAnalyzer";
 import { isCoveredBySpecifier } from "./core/versionResolver";
 import { PyDepsCodeLensProvider } from "./providers/codeLensProvider";
 import { PyDepsHoverProvider } from "./providers/hoverProvider";
 import { getLatestCompatible } from "./providers/versionService";
-import type { VersionAnalysis } from "./types";
 import { getConfig, onConfigChange } from "./utils/configuration";
 import {
 	extractVersionNumber,
@@ -114,14 +113,8 @@ export function activate(context: vscode.ExtensionContext): void {
 			const deps = parseDependencies(document.fileName, document.getText());
 			const config = getConfig();
 
-			const edit = new vscode.WorkspaceEdit();
-			let safeUpdates = 0;
-			const riskyUpdates: Array<{
-				dep: AnyDependency;
-				currentVersion: string;
-				newVersion: string;
-				analysis: VersionAnalysis;
-			}> = [];
+			const pendingSafe: BatchUpdate[] = [];
+			const riskyUpdates: Array<BatchUpdate & { currentVersion: string }> = [];
 
 			// First pass: identify safe and risky updates with progress
 			await vscode.window.withProgress(
@@ -186,65 +179,23 @@ export function activate(context: vscode.ExtensionContext): void {
 									dep,
 									currentVersion,
 									newVersion,
-									analysis,
+									kind: "risky",
 								});
 							} else {
-								const lineText = document.lineAt(dep.line).text;
-								const isTOML = document.languageId === "toml";
-								const planned = planLineUpdate(
-									lineText,
-									newVersion,
-									isTOML,
-									dep.startColumn,
-								);
-
-								if (planned) {
-									const range = new vscode.Range(
-										dep.line,
-										planned.match.startIndex,
-										dep.line,
-										planned.match.endIndex,
-									);
-									edit.replace(document.uri, range, planned.replacement);
-									safeUpdates++;
-								}
+								// Do not build the edit yet. `dep.line` is from the
+								// pre-fetch snapshot and is wrong if the user inserted
+								// or deleted lines while the registry was answering.
+								pendingSafe.push({ dep, newVersion, kind: "safe" });
 							}
 						}
 					}
 				},
 			);
 
-			// The fetches above can take a while; if the user edited the document
-			// meanwhile, the snapshot's line numbers no longer match the file.
-			// Re-parse and re-locate every dependency by name (+ extra) so the
-			// edits below always land on the current text.
-			let depsForEdits = deps;
-			if (document.version !== documentVersionAtStart) {
-				depsForEdits = parseDependencies(document.fileName, document.getText());
-				Logger.log(
-					`Document changed during update-all; re-matching ${depsForEdits.length} dependencies`,
-				);
-			}
-			const freshByName = new Map<string, AnyDependency[]>();
-			if (depsForEdits !== deps) {
-				for (const d of depsForEdits) {
-					const extra = "extra" in d ? (d.extra ?? "") : "";
-					const depKey = `${d.packageName}|${extra}`;
-					const list = freshByName.get(depKey) ?? [];
-					list.push(d);
-					freshByName.set(depKey, list);
-				}
-			}
-			const locate = (dep: AnyDependency): AnyDependency | undefined => {
-				if (depsForEdits === deps) {
-					return dep;
-				}
-				const extra = "extra" in dep ? (dep.extra ?? "") : "";
-				return freshByName.get(`${dep.packageName}|${extra}`)?.shift();
-			};
-
-			// Handle risky updates with confirmation
-			let confirmedRiskyUpdates = 0;
+			// Handle risky updates with confirmation. Safe edits are not
+			// applied until after this dialog, so a change made while it is
+			// open is included in the same re-parse.
+			let applyRisky = false;
 			if (riskyUpdates.length > 0) {
 				const riskyList = riskyUpdates
 					.map(
@@ -266,36 +217,42 @@ export function activate(context: vscode.ExtensionContext): void {
 				if (choice === undefined) {
 					// User clicked Cancel (VS Code provides this automatically)
 					return;
-				} else if (choice === t("updateAllRisky")) {
-					const isTOML = document.languageId === "toml";
-					for (const update of riskyUpdates) {
-						const target = locate(update.dep);
-						if (!target) {
-							continue;
-						}
-						const lineText = document.lineAt(target.line).text;
-						const planned = planLineUpdate(
-							lineText,
-							update.newVersion,
-							isTOML,
-							target.startColumn,
-						);
-
-						if (planned) {
-							const range = new vscode.Range(
-								target.line,
-								planned.match.startIndex,
-								target.line,
-								planned.match.endIndex,
-							);
-							edit.replace(document.uri, range, planned.replacement);
-							confirmedRiskyUpdates++;
-						}
-					}
 				}
-				// If 'Update Safe Only', we don't add risky updates to edit
+				applyRisky = choice === t("updateAllRisky");
+				// "Update Safe Only" leaves applyRisky false.
 			}
 
+			if (document.version !== documentVersionAtStart) {
+				Logger.log(
+					"Document changed during update-all; re-matching dependencies against the current text",
+				);
+			}
+
+			const currentText = document.getText();
+			const plannedEdits = planRelocatedEdits({
+				updates: applyRisky ? [...pendingSafe, ...riskyUpdates] : pendingSafe,
+				fileName: document.fileName,
+				currentText,
+				isTOML: document.languageId === "toml",
+			});
+
+			const edit = new vscode.WorkspaceEdit();
+			for (const plannedEdit of plannedEdits) {
+				const range = new vscode.Range(
+					plannedEdit.line,
+					plannedEdit.startColumn,
+					plannedEdit.line,
+					plannedEdit.endColumn,
+				);
+				edit.replace(document.uri, range, plannedEdit.replacement);
+			}
+
+			const safeUpdates = plannedEdits.filter(
+				(item) => item.kind === "safe",
+			).length;
+			const confirmedRiskyUpdates = plannedEdits.filter(
+				(item) => item.kind === "risky",
+			).length;
 			const totalUpdates = safeUpdates + confirmedRiskyUpdates;
 
 			if (totalUpdates > 0) {
@@ -360,6 +317,13 @@ export function activate(context: vscode.ExtensionContext): void {
 	);
 
 	context.subscriptions.push(hoverDisposable);
+
+	// Closed files must leave the dependency cache. Otherwise the status
+	// bar keeps counting every requirements file the user has ever opened.
+	const closeDisposable = vscode.workspace.onDidCloseTextDocument((closed) => {
+		codeLensProvider.forgetDocument(closed.uri);
+	});
+	context.subscriptions.push(closeDisposable);
 
 	// Handle document changes with debounce (Requirement 1.2, 1.3)
 	const changeDisposable = vscode.workspace.onDidChangeTextDocument((event) => {

@@ -326,6 +326,21 @@ export type VersionLensKind =
 	| "update";
 
 /**
+ * Specifier passed to the version resolver for one dependency.
+ * Requirements continuation markers (`\`) are not part of the constraint;
+ * pyproject strings are already a single logical line.
+ */
+export function specifierForResolution(dep: {
+	versionSpecifier: string;
+	section?: string;
+}): string {
+	if ("section" in dep && dep.section) {
+		return dep.versionSpecifier;
+	}
+	return dep.versionSpecifier.replace(/\\+$/, "");
+}
+
+/**
  * Decide which version CodeLens a dependency should get once the registry
  * has answered. Unversioned and URL dependencies stay hidden so they never
  * show an Update action (or a Major warning derived from an empty version).

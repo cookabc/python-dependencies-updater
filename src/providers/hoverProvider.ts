@@ -6,6 +6,7 @@
 import * as vscode from "vscode";
 import { parseDependencies } from "../core/unifiedParser";
 import { getConfig } from "../utils/configuration";
+import { specifierForResolution } from "../utils/dependencyUtils";
 import { t } from "../utils/i18n";
 import { Logger } from "../utils/logger";
 import { getLatestCompatible } from "./versionService";
@@ -46,9 +47,11 @@ export class PyDepsHoverProvider implements vscode.HoverProvider {
 		Logger.log(`Providing hover for ${dep.packageName}`);
 		try {
 			const packageNameWithoutExtras = dep.packageName.split("[")[0];
+			// Same resolution as the CodeLens: ranges stay inside the specifier,
+			// and a bare `==` pin still suggests the absolute latest.
 			const versionInfo = await getLatestCompatible(
 				packageNameWithoutExtras,
-				"",
+				specifierForResolution(dep),
 				config.showPrerelease,
 				config.cacheTTLMinutes,
 				config.registryUrl,
