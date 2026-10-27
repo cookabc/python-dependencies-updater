@@ -90,8 +90,10 @@ function extractDependencies(
 
 		if (lineIndex !== -1) {
 			const line = lines[lineIndex];
-			const startColumn = line.indexOf(packageName); // Approximate
-			const endColumn = line.length;
+			// indexOf(packageName) matches a longer name that shares the prefix
+			// ("pytest" inside "pytest-cov") and the upgrade then edits the
+			// wrong dependency. Locate this dependency's own quoted string.
+			const span = findDependencySpan(line, depString, packageName);
 
 			result.push({
 				packageName,
@@ -102,8 +104,8 @@ function extractDependencies(
 					? ["project", "optional-dependencies", extra, packageName]
 					: ["project", "dependencies", packageName],
 				line: lineIndex,
-				startColumn: startColumn !== -1 ? startColumn : 0,
-				endColumn,
+				startColumn: span?.startColumn ?? 0,
+				endColumn: span?.endColumn ?? line.length,
 			});
 		}
 	}
@@ -188,6 +190,57 @@ function findDependencyLine(
 	}
 
 	return -1;
+}
+
+function escapeRegExp(value: string): string {
+	return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * Column span of one dependency requirement inside a TOML line.
+ * The package name is matched inside its own quoted requirement so a shorter
+ * name cannot land on a longer neighbor (`pytest` vs `pytest-cov`).
+ */
+function findDependencySpan(
+	line: string,
+	depString: string,
+	packageName: string,
+): { startColumn: number; endColumn: number } | null {
+	const quoted = new RegExp(`(['"])${escapeRegExp(depString)}\\1`, "g");
+	for (const quotedMatch of line.matchAll(quoted)) {
+		const contentStart = quotedMatch.index + 1;
+		const closingQuote = quotedMatch.index + quotedMatch[0].length - 1;
+		const relativeName = depString.indexOf(packageName);
+		if (relativeName < 0) {
+			continue;
+		}
+		const nameIndex = contentStart + relativeName;
+		const afterName = line[nameIndex + packageName.length];
+		if (afterName && /[A-Za-z0-9._-]/.test(afterName)) {
+			continue;
+		}
+		return { startColumn: nameIndex, endColumn: closingQuote };
+	}
+
+	const boundary = new RegExp(
+		`(?<![A-Za-z0-9._-])${escapeRegExp(packageName)}(?![A-Za-z0-9._-])`,
+		"g",
+	);
+	const specTail = depString.slice(packageName.length);
+	for (const boundaryMatch of line.matchAll(boundary)) {
+		const after = line.slice(boundaryMatch.index + packageName.length);
+		if (!specTail || after.startsWith(specTail)) {
+			return {
+				startColumn: boundaryMatch.index,
+				endColumn: Math.min(
+					line.length,
+					boundaryMatch.index + depString.length,
+				),
+			};
+		}
+	}
+
+	return null;
 }
 
 /**
