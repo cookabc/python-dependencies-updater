@@ -37,26 +37,36 @@ function dequeue(): void {
 	}
 }
 
-async function makeRequest(url: string): Promise<PyPIResponse> {
+async function makeRequest(url: string, token?: string): Promise<PyPIResponse> {
 	await enqueue();
 	try {
-		return await doMakeRequest(url);
+		return await doMakeRequest(url, token);
 	} finally {
 		dequeue();
 	}
 }
 
-async function doMakeRequest(url: string): Promise<PyPIResponse> {
+async function doMakeRequest(
+	url: string,
+	token?: string,
+): Promise<PyPIResponse> {
 	const controller = new AbortController();
 	const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
 	try {
+		const headers: Record<string, string> = {
+			Accept: "application/json",
+			"User-Agent": "VSCode-Python-Dependencies-Updater",
+		};
+		// Private mirrors (Artifactory, devpi, GitLab) authenticate with a
+		// bearer token; the public index ignores one if configured by mistake.
+		if (token) {
+			headers.Authorization = `Bearer ${token}`;
+		}
+
 		const response = await fetch(url, {
 			signal: controller.signal,
-			headers: {
-				Accept: "application/json",
-				"User-Agent": "VSCode-Python-Dependencies-Updater",
-			},
+			headers,
 		});
 
 		if (response.status === 404) {
@@ -105,6 +115,7 @@ export function filterInstallableVersions(
 export async function fetchVersions(
 	packageName: string,
 	registryUrl?: string,
+	token?: string,
 ): Promise<PyPIClientResult> {
 	Logger.log(`fetchVersions called for ${packageName}`);
 
@@ -112,7 +123,7 @@ export async function fetchVersions(
 		const baseUrl = (registryUrl || DEFAULT_REGISTRY).replace(/\/+$/, "");
 		const url = `${baseUrl}/pypi/${encodeURIComponent(packageName)}/json`;
 
-		const data = await makeRequest(url);
+		const data = await makeRequest(url, token);
 
 		if (!data.releases || typeof data.releases !== "object") {
 			Logger.error(`Invalid data structure for ${packageName}`);

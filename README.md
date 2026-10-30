@@ -89,6 +89,14 @@ an explicit confirmation.
 | `pyDepsHint.registryUrl` | `https://pypi.org` | Custom registry exposing the PyPI JSON API |
 | `pyDepsHint.checkVulnerabilities` | `true` | Check exact pins against OSV.dev |
 
+### Private registries
+
+`pyDepsHint.registryUrl` points the extension at a mirror such as Artifactory,
+devpi or GitLab. When that mirror needs authentication, run **Set Registry
+Token** from the command palette. The token is stored in VS Code's
+SecretStorage and sent as a `Bearer` header — never in `settings.json`, which
+syncs across machines and is readable as plain text.
+
 ## Project structure
 
 ```

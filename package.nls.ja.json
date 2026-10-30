@@ -4,6 +4,7 @@
   "command.showUpToDate": "パッケージの最新状態を表示",
   "command.openOnPyPI": "PyPI で開く",
   "command.showVulnerabilities": "既知の脆弱性を表示",
+  "command.setRegistryToken": "レジストリトークンを設定",
   "colors.upToDate": "最新パッケージの色",
   "colors.updateAvailable": "更新可能なパッケージの色",
   "config.title": "Python 依存関係ヒント",

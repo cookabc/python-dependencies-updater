@@ -4,6 +4,7 @@
   "command.showUpToDate": "顯示套件更新狀態",
   "command.openOnPyPI": "在 PyPI 中開啟",
   "command.showVulnerabilities": "顯示已知漏洞",
+  "command.setRegistryToken": "設定註冊表權杖",
   "colors.upToDate": "已是最新版本的套件的顏色",
   "colors.updateAvailable": "有可用更新的套件的顏色",
   "config.title": "Python 依賴提示",

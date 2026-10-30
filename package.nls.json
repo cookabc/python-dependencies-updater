@@ -4,6 +4,7 @@
   "command.showUpToDate": "Show Package Up-to-date Status",
   "command.openOnPyPI": "Open Package on PyPI",
   "command.showVulnerabilities": "Show Known Vulnerabilities",
+  "command.setRegistryToken": "Set Registry Token",
   "colors.upToDate": "Color for up-to-date packages",
   "colors.updateAvailable": "Color for packages with updates available",
   "config.title": "Python Dependencies Hint",

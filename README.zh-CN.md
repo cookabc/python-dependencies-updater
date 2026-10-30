@@ -82,6 +82,13 @@ Poetry 项目同样支持：`[tool.poetry.dependencies]`、
 | `pyDepsHint.checkVulnerabilities` | `true` | 是否对照 OSV.dev 检查精确版本 |
 | `pyDepsHint.registryUrl` | `https://pypi.org` | 暴露 PyPI JSON API 的自定义注册表 |
 
+### 私有注册表
+
+`pyDepsHint.registryUrl` 可以把扩展指向 Artifactory、devpi 或 GitLab 这类镜像。
+镜像需要认证时，从命令面板执行「Set Registry Token」。令牌存在 VS Code 的
+SecretStorage 里，以 `Bearer` 头发送——不写进 `settings.json`，因为那份配置会
+跨机器同步、且是明文可读的。
+
 ## 项目结构
 
 ```

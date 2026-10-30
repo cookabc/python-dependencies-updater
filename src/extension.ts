@@ -340,6 +340,40 @@ export function activate(context: vscode.ExtensionContext): void {
 
 	context.subscriptions.push(codeLensDisposable);
 
+	// Private mirrors authenticate with a token kept in SecretStorage, never in
+	// settings: settings sync across machines and show up in plain text.
+	const registryTokenKey = "pyDepsHint.registryToken";
+	const applyRegistryToken = async () => {
+		codeLensProvider.setRegistryToken(
+			await context.secrets.get(registryTokenKey),
+		);
+	};
+	void applyRegistryToken();
+
+	context.subscriptions.push(
+		vscode.commands.registerCommand("pyDepsHint.setRegistryToken", async () => {
+			const token = await vscode.window.showInputBox({
+				prompt: "Token for the configured registry. Leave empty to remove it.",
+				password: true,
+				ignoreFocusOut: true,
+			});
+			if (token === undefined) {
+				return;
+			}
+			if (token.trim() === "") {
+				await context.secrets.delete(registryTokenKey);
+				vscode.window.showInformationMessage("Removed the registry token");
+			} else {
+				await context.secrets.store(registryTokenKey, token.trim());
+				vscode.window.showInformationMessage("Saved the registry token");
+			}
+			await applyRegistryToken();
+			// Answers fetched before the change came from the old credentials.
+			codeLensProvider.clearCache();
+			codeLensProvider.refresh();
+		}),
+	);
+
 	// Register Hover Provider for package descriptions
 	const hoverProvider = new PyDepsHoverProvider();
 	const hoverDisposable = vscode.languages.registerHoverProvider(

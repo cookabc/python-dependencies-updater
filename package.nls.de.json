@@ -4,6 +4,7 @@
   "command.showUpToDate": "Paket-Aktualisierungsstatus anzeigen",
   "command.openOnPyPI": "Auf PyPI öffnen",
   "command.showVulnerabilities": "Bekannte Schwachstellen anzeigen",
+  "command.setRegistryToken": "Registry-Token setzen",
   "colors.upToDate": "Farbe für aktuelle Pakete",
   "colors.updateAvailable": "Farbe für Pakete mit verfügbaren Updates",
   "config.title": "Python-Abhängigkeitshinweis",

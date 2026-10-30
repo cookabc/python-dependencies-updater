@@ -72,9 +72,20 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 	private pendingFetches: Set<string> = new Set();
 	// Optional status bar for update counts
 	private statusBar?: StatusBarManager;
+	// Bearer token for a private registry, read from SecretStorage
+	private registryToken?: string;
 
 	constructor(statusBar?: StatusBarManager) {
 		this.statusBar = statusBar;
+	}
+
+	/**
+	 * Set the bearer token used for registry requests. Dropping the version
+	 * cache is the caller's job: a cached answer was fetched with the old
+	 * credentials.
+	 */
+	public setRegistryToken(token: string | undefined): void {
+		this.registryToken = token;
 	}
 
 	public refresh(): void {
@@ -439,6 +450,7 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 				packageName,
 				config.cacheTTLMinutes,
 				config.registryUrl,
+				this.registryToken,
 			);
 
 			this.versionCache.set(key, {

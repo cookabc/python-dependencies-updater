@@ -4,6 +4,7 @@
   "command.showUpToDate": "显示包更新状态",
   "command.openOnPyPI": "在 PyPI 中打开",
   "command.showVulnerabilities": "显示已知漏洞",
+  "command.setRegistryToken": "设置注册表令牌",
   "colors.upToDate": "已是最新版本的包的颜色",
   "colors.updateAvailable": "有可用更新的包的颜色",
   "config.title": "Python 依赖提示",

@@ -83,6 +83,10 @@
             {
                 "command": "pyDepsHint.showVulnerabilities",
                 "title": "%command.showVulnerabilities%"
+            },
+            {
+                "command": "pyDepsHint.setRegistryToken",
+                "title": "%command.setRegistryToken%"
             }
         ],
         "configuration": {

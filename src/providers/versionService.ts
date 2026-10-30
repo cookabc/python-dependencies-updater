@@ -29,6 +29,7 @@ export async function getPackageVersions(
 	packageName: string,
 	cacheTTLMinutes: number = 60,
 	registryUrl?: string,
+	token?: string,
 ): Promise<PackageVersions> {
 	const key = cacheKey(packageName, registryUrl);
 	const cached = cacheManager.get(key, cacheTTLMinutes);
@@ -37,7 +38,7 @@ export async function getPackageVersions(
 	}
 
 	Logger.log(`Fetching PyPI versions for ${packageName}`);
-	const result = await fetchVersions(packageName, registryUrl);
+	const result = await fetchVersions(packageName, registryUrl, token);
 
 	if (!result.success || !result.data) {
 		throw Object.assign(new Error(result.error ?? "fetch-error"), {
@@ -58,12 +59,14 @@ export async function getLatestCompatible(
 	includePrerelease: boolean = false,
 	cacheTTLMinutes: number = 60,
 	registryUrl?: string,
+	token?: string,
 ): Promise<VersionInfo> {
 	try {
 		const packageVersions = await getPackageVersions(
 			packageName,
 			cacheTTLMinutes,
 			registryUrl,
+			token,
 		);
 
 		const resolved = resolveLatest(

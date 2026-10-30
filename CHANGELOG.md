@@ -6,6 +6,9 @@ All notable changes to the "Python Dependencies Updater" extension will be docum
 
 ### Added
 
+- A private registry can be authenticated. **Set Registry Token** stores the
+  token in SecretStorage and it is sent as a `Bearer` header, so mirrors such
+  as Artifactory, devpi and GitLab work instead of returning 401.
 - Dependencies pinned to an exact version are checked against OSV.dev. A
   shield hint marks the ones with known advisories, the status bar turns red,
   and clicking lists each advisory with its severity. Only exact pins are
