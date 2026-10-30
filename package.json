@@ -87,6 +87,10 @@
             {
                 "command": "pyDepsHint.setRegistryToken",
                 "title": "%command.setRegistryToken%"
+            },
+            {
+                "command": "pyDepsHint._uatVulnerabilityLenses",
+                "title": "UAT: read vulnerability lenses"
             }
         ],
         "configuration": {

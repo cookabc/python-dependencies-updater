@@ -92,6 +92,47 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 		this._onDidChangeCodeLenses.fire();
 	}
 
+	/**
+	 * Vulnerability lenses for the dependencies already parsed for `uri`.
+	 *
+	 * `vscode.executeCodeLensProvider` answers from a snapshot taken before the
+	 * scan fires its change event, so it cannot observe the shield in the same
+	 * run that produced it. The UAT suite reads the provider directly through
+	 * this instead of polling a stale snapshot.
+	 */
+	public vulnerabilityLensesFor(uri: string): vscode.CodeLens[] {
+		const cached = this.dependencyCache.get(uri);
+		if (!cached) {
+			return [];
+		}
+		const result: vscode.CodeLens[] = [];
+		for (const dep of cached.dependencies) {
+			const pinned = pinnedVersion(dep.versionSpecifier);
+			if (!pinned) {
+				continue;
+			}
+			const packageName = dep.packageName.split("[")[0];
+			const ids = this.vulnerabilityCache.get(osvKey(packageName, pinned));
+			if (!ids || ids.length === 0) {
+				continue;
+			}
+			const range = new vscode.Range(
+				dep.line,
+				dep.endColumn,
+				dep.line,
+				dep.endColumn,
+			);
+			result.push(
+				new vscode.CodeLens(range, {
+					title: `$(shield) ${t("vulnerable", ids.length)}`,
+					command: "pyDepsHint.showVulnerabilities",
+					arguments: [packageName, pinned, ids],
+				}),
+			);
+		}
+		return result;
+	}
+
 	public clearCache(): void {
 		this.versionCache.clear();
 		this.dependencyCache.clear();

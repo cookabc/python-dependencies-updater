@@ -340,6 +340,16 @@ export function activate(context: vscode.ExtensionContext): void {
 
 	context.subscriptions.push(codeLensDisposable);
 
+	// Read the vulnerability lenses straight from the provider. The UAT suite
+	// needs this because `executeCodeLensProvider` answers from a snapshot
+	// taken before the scan fires its change event.
+	context.subscriptions.push(
+		vscode.commands.registerCommand(
+			"pyDepsHint._uatVulnerabilityLenses",
+			(uri: string) => codeLensProvider.vulnerabilityLensesFor(uri),
+		),
+	);
+
 	// Private mirrors authenticate with a token kept in SecretStorage, never in
 	// settings: settings sync across machines and show up in plain text.
 	const registryTokenKey = "pyDepsHint.registryToken";

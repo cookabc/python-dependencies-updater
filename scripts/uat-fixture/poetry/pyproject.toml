@@ -1,0 +1,10 @@
+[tool.poetry]
+name = "uat-poetry"
+version = "0.1.0"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+poetrypkg = "^3.0"
+
+[tool.poetry.group.dev.dependencies]
+devpkg = "^5.0"

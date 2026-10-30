@@ -212,6 +212,53 @@ export async function run(): Promise<void> {
 		`Cargo.toml must not get CodeLenses, got: ${JSON.stringify(cargoLenses.map((l) => l.command?.title))}`,
 	);
 
+	// ---------- vulnerability hints (OSV stub) ----------
+	// A dedicated fixture keeps this independent of Update All, which rewrites
+	// the main requirements.txt and would move flask off the pinned version
+	// the stub reports as vulnerable.
+	const vulnDoc = await vscode.workspace.openTextDocument(
+		path.join(FIXTURE, "vuln", "requirements.txt"),
+	);
+	let shieldLenses: vscode.CodeLens[] = [];
+	{
+		const deadline = Date.now() + 20000;
+		for (;;) {
+			// Force a parse so the provider has this document's dependencies.
+			await lensesFor(vulnDoc);
+			const direct = (await vscode.commands.executeCommand(
+				"pyDepsHint._uatVulnerabilityLenses",
+				vulnDoc.uri.toString(),
+			)) as vscode.CodeLens[];
+			if (Array.isArray(direct) && direct.length > 0) {
+				shieldLenses = direct;
+				break;
+			}
+			if (Date.now() > deadline) {
+				assert.fail("shield never appeared for the pinned flask");
+			}
+			await sleep(400);
+		}
+	}
+
+	assert.strictEqual(
+		shieldLenses.length,
+		1,
+		`exactly the pinned flask should be flagged, got: ${JSON.stringify(
+			shieldLenses.map((l) => l.command?.arguments?.slice(0, 2)),
+		)}`,
+	);
+	const shield = shieldLenses[0];
+	assert.strictEqual(
+		shield.command?.arguments?.[0],
+		"flask",
+		`the flagged package should be flask, got: ${shield.command?.arguments?.[0]}`,
+	);
+	assert.deepStrictEqual(
+		shield.command?.arguments?.[2],
+		["GHSA-uat-flask-1", "GHSA-uat-flask-2"],
+		`the shield should carry both advisories, got: ${JSON.stringify(shield.command?.arguments?.[2])}`,
+	);
+
 	// ---------- Update All ----------
 	await vscode.window.showTextDocument(reqDoc);
 	await vscode.commands.executeCommand("pyDepsHint.updateAllVersions");
@@ -222,6 +269,48 @@ export async function run(): Promise<void> {
 			onDisk.includes("requests>=2.31.0") &&
 			onDisk.includes("numpy>=1.26.0"),
 		`Update All should bump all three requirements, file on disk:\n${onDisk}`,
+	);
+
+	// ---------- Poetry tables ----------
+	const poetryDoc = await vscode.workspace.openTextDocument(
+		path.join(FIXTURE, "poetry", "pyproject.toml"),
+	);
+	const poetryLenses = await waitForLenses(
+		poetryDoc,
+		(ls) => settledCount(ls) >= 2,
+	);
+	// ^3.0 must not cross the 4.0.0 ceiling the caret implies
+	const poetryPkg = versionLens(poetryLenses, "poetrypkg");
+	assert.ok(
+		String(poetryPkg.command?.title).includes("3.1.0") &&
+			!String(poetryPkg.command?.title).includes("4.0.0"),
+		`^3.0 must offer 3.1.0 and not 4.0.0, got: ${poetryPkg.command?.title}`,
+	);
+	// the group table is read too
+	const devPkg = versionLens(poetryLenses, "devpkg");
+	assert.ok(
+		String(devPkg.command?.title).includes("5.1.0"),
+		`group dependency should suggest 5.1.0, got: ${devPkg.command?.title}`,
+	);
+	// `python` is the interpreter constraint, not a PyPI package
+	assert.ok(
+		!poetryLenses.some((l) => l.command?.arguments?.[2] === "python"),
+		"`python` must not get a package lens",
+	);
+
+	// ---------- PEP 735 dependency-groups ----------
+	// The group mixes an include-group table with a requirement string, which
+	// @iarna/toml rejects outright; the parser must survive it.
+	const devDoc = await vscode.workspace.openTextDocument(
+		path.join(FIXTURE, "devgroups", "pyproject.toml"),
+	);
+	const devLenses = await waitForLenses(devDoc, (ls) => settledCount(ls) >= 3);
+	const devGroupPkg = versionLens(devLenses, "devpkg");
+	assert.ok(
+		devGroupPkg,
+		`devpkg inside [dependency-groups] should get a lens, got: ${JSON.stringify(
+			devLenses.map((l) => l.command?.title),
+		)}`,
 	);
 
 	console.log("UAT suite finished OK");

@@ -1,0 +1,10 @@
+[project]
+name = "uat-devgroups"
+dependencies = ["flask>=2.0.0"]
+
+[dependency-groups]
+dev = [
+    {include-group = "test"},
+    "devpkg>=5.0",
+]
+test = ["postpkg>=1.0"]

@@ -31,6 +31,16 @@ const pypi = {
 	starlette: { summary: "Starlette ASGI", releases: { "0.36.3": release(), "0.37.2": release() } },
 	yankedpkg: { summary: "Only old files survive", releases: { "1.0.0": release(), "2.0.0": release(true) } },
 	postpkg: { summary: "Post releases are final", releases: { "1.0.0": release(), "1.0.1.post1": release() } },
+	poetrypkg: { summary: "Poetry-managed", releases: { "3.0.0": release(), "3.1.0": release(), "4.0.0": release() } },
+	devpkg: { summary: "Dev group", releases: { "5.0.0": release(), "5.1.0": release() } },
+};
+
+/**
+ * Advisories keyed by the exact pin. `flask@2.0.0` is vulnerable,
+ * `requests@2.28.0` is not, so the suite can check both directions.
+ */
+const osvAdvisories = {
+	"flask@2.0.0": ["GHSA-uat-flask-1", "GHSA-uat-flask-2"],
 };
 
 const server = http.createServer((req, res) => {
@@ -45,6 +55,33 @@ const server = http.createServer((req, res) => {
 		res.end(JSON.stringify({ info: { summary: data.summary }, releases: data.releases }));
 		return;
 	}
+
+	// OSV stub: only the pins listed here are vulnerable, so the suite can
+	// assert both that an advisory is reported and that a clean pin is not.
+	if (req.url === "/v1/querybatch" && req.method === "POST") {
+		let body = "";
+		req.on("data", (chunk) => {
+			body += chunk;
+		});
+		req.on("end", () => {
+			let queries = [];
+			try {
+				queries = JSON.parse(body).queries ?? [];
+			} catch {
+				res.writeHead(400).end("bad json");
+				return;
+			}
+			const results = queries.map((q) => {
+				const key = `${q.package?.name}@${q.version}`;
+				const ids = osvAdvisories[key];
+				return ids ? { vulns: ids.map((id) => ({ id, modified: "2026-01-01T00:00:00Z" })) } : {};
+			});
+			res.writeHead(200, { "content-type": "application/json" });
+			res.end(JSON.stringify({ results }));
+		});
+		return;
+	}
+
 	res.writeHead(404).end();
 });
 await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
@@ -62,7 +99,13 @@ try {
 		extensionDevelopmentPath: root,
 		extensionTestsPath: path.join(root, "out", "test", "uat", "suite.js"),
 		launchArgs: [fixture, "--disable-extensions", "--disable-gpu", `--user-data-dir=${profile}`],
-		extensionTestsEnv: { UAT_FIXTURE: fixture, UAT_PYPI: `http://127.0.0.1:${port}` },
+		extensionTestsEnv: {
+			UAT_FIXTURE: fixture,
+			UAT_PYPI: `http://127.0.0.1:${port}`,
+			// Point the OSV client at this stub so the vulnerability path is
+			// exercised in a real editor without touching the network.
+			PYDEPS_OSV_BASE: `http://127.0.0.1:${port}`,
+		},
 	});
 	console.log("UAT PASSED");
 } catch (err) {
