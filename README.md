@@ -3,7 +3,7 @@
 **English** · [简体中文](README.zh-CN.md)
 
 Inline version hints and one-click upgrades for `requirements.txt` and
-`pyproject.toml`, with breaking change detection and a status bar summary.
+`pyproject.toml`, with a status bar summary and known-vulnerability checks.
 
 [![Marketplace Version](https://vsmarketplacebadges.dev/version/cookabc.python-dependencies-updater.svg)](https://marketplace.visualstudio.com/items?itemName=cookabc.python-dependencies-updater)
 [![Downloads](https://vsmarketplacebadges.dev/downloads-short/cookabc.python-dependencies-updater.svg)](https://marketplace.visualstudio.com/items?itemName=cookabc.python-dependencies-updater)

@@ -2,7 +2,7 @@
 
 [English](README.md) · **简体中文**
 
-在 `requirements.txt` 与 `pyproject.toml` 里直接显示版本提示并一键升级，同时标出破坏性变更，状态栏给出汇总。
+在 `requirements.txt` 与 `pyproject.toml` 里直接显示版本提示并一键升级，状态栏给出汇总，并标出已知漏洞。
 
 [![Marketplace Version](https://vsmarketplacebadges.dev/version/cookabc.python-dependencies-updater.svg)](https://marketplace.visualstudio.com/items?itemName=cookabc.python-dependencies-updater)
 [![Downloads](https://vsmarketplacebadges.dev/downloads-short/cookabc.python-dependencies-updater.svg)](https://marketplace.visualstudio.com/items?itemName=cookabc.python-dependencies-updater)

@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This is a **VS Code Extension** that provides smart version management for Python dependency files (`requirements.txt` and `pyproject.toml`). It displays inline version hints and enables one-click updates with breaking change detection.
+This is a **VS Code Extension** that provides smart version management for Python dependency files (`requirements.txt` and `pyproject.toml`). It displays inline version hints, enables one-click updates, and flags known vulnerabilities.
 
 - **Extension Name**: Python Dependencies Updater
 - **Publisher**: cookabc
