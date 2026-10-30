@@ -1,171 +1,132 @@
 # Python Dependencies Updater
 
-Smart version management for Python requirements.txt and pyproject.toml files with one-click updates and breaking change detection.
+**English** · [简体中文](README.zh-CN.md)
+
+Inline version hints and one-click upgrades for `requirements.txt` and
+`pyproject.toml`, with breaking change detection and a status bar summary.
 
 [![Marketplace Version](https://vsmarketplacebadges.dev/version/cookabc.python-dependencies-updater.svg)](https://marketplace.visualstudio.com/items?itemName=cookabc.python-dependencies-updater)
 [![Downloads](https://vsmarketplacebadges.dev/downloads-short/cookabc.python-dependencies-updater.svg)](https://marketplace.visualstudio.com/items?itemName=cookabc.python-dependencies-updater)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/cookabc/python-dependencies-updater/actions/workflows/ci.yml/badge.svg)](https://github.com/cookabc/python-dependencies-updater/actions/workflows/ci.yml)
 
-## ✨ Features
+## Features
 
-- 🔍 **Smart Version Detection** - Automatically detects `requirements.txt` and `pyproject.toml` files and displays version information
-- 🎯 **Risk Analysis** - Distinguishes between safe updates (patch/minor) and risky updates (major versions)
-- 🖱️ **One-Click Updates** - Click on version hints to update to the latest version instantly
-- 🧠 **Constraint-Aware Suggestions** - Suggestions respect each dependency's own specifier (`==`, `>=`, `~=`, `==1.2.*` wildcards, environment markers)
-- 💬 **Hover Details** - Hover a dependency to see its PyPI summary and latest version
-- ⚠️ **Safety Confirmation** - Shows confirmation dialogs for major version updates to prevent breaking changes
-- 📊 **Status Bar Display** - Real-time display of updatable package count
-- 🌍 **Multi-language Support** - Supports Chinese, English, Japanese, Korean, and more languages
-- 💾 **Smart Caching** - Reduces network requests and improves response speed
-- 📦 **Modern Python Projects** - Full support for `pyproject.toml` with `[project]` dependencies and `[project.optional-dependencies]`
+- **Both formats** — reads `requirements.txt` and PEP 621 `pyproject.toml`.
+- **Version detection** — each dependency shows its real status against PyPI.
+- **Risk analysis** — patch and minor updates are marked safe; major updates are flagged separately.
+- **One-click updates** — click a version hint to move that dependency to the latest allowed version.
+- **Constraint-aware suggestions** — the dependency's own specifier is respected (`==`, `>=`, `~=`, `==1.2.*` wildcards, environment markers).
+- **Hover details** — hover a dependency for its PyPI summary and latest release.
+- **Batch updates** — the status bar and command palette upgrade every safe package at once, with a confirmation step for majors.
+- **Smart caching** — PyPI responses are cached, so editing stays off the network.
+- **Ten locales** — the interface is localized through `package.nls.*.json`.
 
-## 🚀 Installation
-
-1. Open VS Code
-2. Go to Extensions (Ctrl+Shift+X)
-3. Search for "Python Dependencies Updater"
-4. Click Install
-
-Or install from command line:
+## Installation
 
 ```bash
 code --install-extension cookabc.python-dependencies-updater
 ```
 
-## 🚀 Usage
+Or search for "Python Dependencies Updater" in the Extensions view (Ctrl+Shift+X).
 
-### requirements.txt Files
+## Usage
 
-1. Open any `requirements.txt` file
-2. The extension automatically shows status for each dependency:
-   - `✓ Up to date` - Package is already latest version
-   - `↗ Update to X.X.X` - Safe update available (click to update)
-   - `⚠️ Update to X.X.X Major` - Major version update (use caution)
+### requirements.txt
 
-### pyproject.toml Files
+1. Open any `requirements.txt`.
+2. Each dependency shows its status:
+   - `✓ Up to date` — already at the latest version.
+   - `↗ Update to X.X.X` — a safe update is available.
+   - `⚠️ Update to X.X.X Major` — a major version update.
 
-1. Open any `pyproject.toml` file with `[project]` dependencies
-2. The extension supports both:
-   - Main dependencies in `[project]` section
-   - Optional dependencies in `[project.optional-dependencies]` sections
-3. Shows the same version information and update capabilities
+### pyproject.toml
 
-### Batch Updates
+Both `[project]` dependencies and `[project.optional-dependencies]` groups are
+supported, with the same status hints and update actions.
 
-- Click the status bar update notification
-- Or use Command Palette: `Ctrl+Shift+P` → "Update All Packages"
-- Automatically separates safe updates from risky major version updates
+Only PEP 621 tables are parsed. Poetry's `[tool.poetry.dependencies]` is not
+supported yet. Multi-line and single-line dependency arrays both work, and each
+dependency is rewritten in place without touching its neighbours on the line.
 
-## ⚙️ Configuration
+### Batch updates
 
-| Setting                       | Default | Description                           |
-| ----------------------------- | ------- | ------------------------------------- |
-| `pyDepsHint.enabled`          | `true`  | Enable/disable the extension          |
-| `pyDepsHint.showPrerelease`   | `false` | Include pre-release versions          |
-| `pyDepsHint.cacheTTLMinutes`  | `60`    | Cache TTL in minutes                  |
-| `pyDepsHint.supportPyProject` | `true`  | Enable/disable pyproject.toml support |
-| `pyDepsHint.registryUrl`      | `https://pypi.org` | Custom registry exposing the PyPI JSON API |
+Run "Update All Packages" from the command palette, or click the status bar
+notification. Safe updates and major updates are separated, so the majors need
+an explicit confirmation.
 
-## 🏗️ Project Structure
+## Configuration
+
+| Setting | Default | Description |
+| --- | --- | --- |
+| `pyDepsHint.enabled` | `true` | Enable or disable the extension |
+| `pyDepsHint.showPrerelease` | `false` | Include pre-release versions |
+| `pyDepsHint.cacheTTLMinutes` | `60` | Cache TTL in minutes |
+| `pyDepsHint.supportPyProject` | `true` | Enable or disable `pyproject.toml` support |
+| `pyDepsHint.registryUrl` | `https://pypi.org` | Custom registry exposing the PyPI JSON API |
+
+## Project structure
 
 ```
 src/
-├── core/           # Core business logic
-│   ├── cache.ts           # Cache management
-│   ├── parser.ts          # Dependency parsing (requirements.txt)
+├── core/
+│   ├── batchUpdate.ts     # Batch update orchestration
+│   ├── cache.ts           # Response cache
+│   ├── packageName.ts     # Distribution name normalisation
+│   ├── parser.ts          # requirements.txt parsing
+│   ├── pep440.ts          # PEP 440 version comparison
 │   ├── pyprojectParser.ts # pyproject.toml parsing
-│   ├── unifiedParser.ts   # Unified parser for both formats
+│   ├── unifiedParser.ts   # One interface over both formats
 │   ├── versionAnalyzer.ts # Version risk analysis
 │   └── versionResolver.ts # Version resolution
-├── providers/      # Service providers
-│   ├── codeLensProvider.ts # CodeLens provider
-│   ├── pypiClient.ts      # PyPI API client
-│   └── versionService.ts  # Version service
-├── utils/          # Utility functions
-│   ├── configuration.ts   # Configuration management
-│   ├── i18n.ts           # Internationalization
-│   └── statusBar.ts      # Status bar management
-├── types/          # Type definitions
-│   └── index.ts
-└── extension.ts    # Extension entry point
+├── providers/
+│   ├── codeLensProvider.ts # CodeLens entries
+│   ├── hoverProvider.ts    # Hover summaries
+│   ├── pypiClient.ts       # PyPI client
+│   └── versionService.ts   # Version service
+├── utils/
+│   ├── configuration.ts    # Settings access
+│   ├── dependencyUtils.ts  # Shared dependency helpers
+│   ├── i18n.ts             # Locale lookup
+│   ├── logger.ts           # Output channel logging
+│   ├── statusBar.ts        # Status bar management
+│   └── url-validator.ts    # Registry URL validation
+├── types/index.ts
+├── test/                  # Mocha unit tests
+└── extension.ts           # Entry point
 ```
 
-## 🛠️ Development
+## Development
 
 ```bash
-# Install dependencies
 npm install
-
-# Compile
-npm run compile
-
-# Run tests
-npm test
-
-# Package extension
-npx vsce package
+npm run compile   # tsc
+npm test          # mocha 'out/test/unit/**/*.test.js'
+npm run lint      # biome check --write src
+npm run uat       # end-to-end pass against scripts/uat-fixture
 ```
 
-## 🆕 pyproject.toml Support
+## Publishing
 
-Starting from v1.1.0, this extension now supports modern Python project files! It can parse and update dependencies in `pyproject.toml` files, supporting:
-
-### Supported Sections
-
-- `[project]` - Main dependencies
-- `[project.optional-dependencies]` - Optional dependency groups
-
-### Example pyproject.toml
-
-```toml
-[project]
-name = "my-project"
-version = "1.0.0"
-dependencies = [
-    "fastapi==0.116.1",
-    "sqlalchemy==2.0.43",
-    "pydantic==2.11.7",
-]
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0.0",
-    "black>=23.0.0",
-]
-```
-
-The extension will automatically detect `pyproject.toml` files and provide the same smart version checking and update capabilities as for `requirements.txt` files.
-
-Scope notes: only PEP 621 tables (`[project]` / `[project.optional-dependencies]`) are parsed — Poetry's `[tool.poetry.dependencies]` is not supported yet. Both multi-line and single-line dependency arrays work; each dependency is updated in place without touching its neighbours on the same line.
-
-## 🚀 Publishing
-
-Automated: pushing a version tag runs tests, publishes to both marketplaces
-and attaches the VSIX to a GitHub Release. Publishing uses OIDC trusted
-publishing — register the repository + workflow once on each marketplace
-(no token stored as a secret); `VSCE_PAT` / `OVSX_PAT` secrets still work
-as a fallback:
+Pushing a version tag runs tests, publishes to both marketplaces and attaches
+the VSIX to a GitHub Release:
 
 ```bash
 git tag v<package.json version> && git push origin v<package.json version>
 ```
 
+Publishing uses OIDC trusted publishing — register the repository and workflow
+once on each marketplace, and no token needs to be stored as a secret.
+`VSCE_PAT` / `OVSX_PAT` secrets still work as a fallback.
+
 Manual local publish (reads `.env` with `VSCE_PAT` / `OVSX_PAT`):
 
 ```bash
-# Publish to both VS Code Marketplace and OpenVSX
-./publish.sh all
-
-# Publish to VS Code Marketplace only
-./publish.sh vsx
-
-# Publish to OpenVSX only
-./publish.sh ovsx
+./publish.sh all    # both marketplaces
+./publish.sh vsx    # VS Code Marketplace only
+./publish.sh ovsx   # OpenVSX only
 ```
 
-**Prerequisites:** Azure DevOps Personal Access Token with Marketplace permissions. See [VS Code Publishing Docs](https://code.visualstudio.com/api/working-with-extensions/publishing-extension) for setup details.
+## License
 
-## �📄 License
-
-MIT
+MIT. See [LICENSE](LICENSE).
