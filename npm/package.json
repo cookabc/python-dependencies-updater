@@ -129,7 +129,6 @@
         "publish:vsx": "./publish.sh vsx",
         "publish:ovsx": "./publish.sh ovsx",
         "publish:all": "./publish.sh all",
-        "prepare": "husky",
         "uat": "npm run compile && node esbuild.js && node scripts/uat.mjs",
         "lint:fix": "biome check --write src",
         "check": "npm run lint && npm test"

@@ -155,7 +155,10 @@
         "prepare": "husky",
         "uat": "npm run compile && node esbuild.js && node scripts/uat.mjs",
         "lint:fix": "biome check --write src",
-        "check": "npm run lint && npm test"
+        "check": "npm run lint && npm test",
+        "npm:install": "npm --prefix npm ci --ignore-scripts",
+        "npm:check": "npm --prefix npm run check",
+        "check:all": "npm run check && npm run npm:check"
     },
     "dependencies": {
         "@iarna/toml": "^2.2.5"
