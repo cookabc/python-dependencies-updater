@@ -1,0 +1,11 @@
+{
+  "command.updateVersion": "Обновить версию зависимости",
+  "command.updateAllVersions": "Обновить все зависимости",
+  "command.showUpToDate": "Показать статус обновления пакета",
+  "command.openOnNpm": "Открыть на NPM",
+  "config.title": "Обновление зависимостей NPM",
+  "config.enabled.description": "Включить или отключить расширение",
+  "config.showPrerelease.description": "Включать пре-релизные версии в подсказки",
+  "config.cacheTTLMinutes.description": "TTL кеша для данных версий NPM (минуты)",
+  "config.registryUrl.description": "URL реестра NPM"
+}

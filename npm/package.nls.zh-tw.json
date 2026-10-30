@@ -1,0 +1,11 @@
+{
+  "command.updateVersion": "更新依賴版本",
+  "command.updateAllVersions": "更新所有依賴",
+  "command.showUpToDate": "顯示套件更新狀態",
+  "command.openOnNpm": "在 NPM 中開啟",
+  "config.title": "NPM 依賴更新器",
+  "config.enabled.description": "啟用或停用擴充功能",
+  "config.showPrerelease.description": "在版本提示中包含預發布版本",
+  "config.cacheTTLMinutes.description": "NPM 版本資料的快取 TTL (分鐘)",
+  "config.registryUrl.description": "NPM 登錄表 URL"
+}

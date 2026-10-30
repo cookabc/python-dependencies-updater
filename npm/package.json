@@ -1,0 +1,164 @@
+{
+    "name": "npm-dependencies-updater",
+    "displayName": "NPM Dependencies Updater",
+    "description": "Smart version management for package.json with one-click updates and breaking change detection",
+    "version": "0.2.1",
+    "publisher": "cookabc",
+    "license": "MIT",
+    "icon": "icon.png",
+    "homepage": "https://github.com/cookabc/npm-dependencies-updater#readme",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/cookabc/npm-dependencies-updater"
+    },
+    "bugs": {
+        "url": "https://github.com/cookabc/npm-dependencies-updater/issues"
+    },
+    "galleryBanner": {
+        "color": "#1e1e1e",
+        "theme": "dark"
+    },
+    "engines": {
+        "node": ">=22.0.0",
+        "vscode": "^1.85.0"
+    },
+    "categories": [
+        "Programming Languages",
+        "Other"
+    ],
+    "activationEvents": [
+        "onLanguage:json",
+        "onLanguage:jsonc",
+        "workspaceContains:package.json"
+    ],
+    "keywords": [
+        "npm",
+        "node",
+        "dependencies",
+        "package.json",
+        "version",
+        "update",
+        "upgrade",
+        "manager"
+    ],
+    "main": "./dist/extension.js",
+    "contributes": {
+        "colors": [
+            {
+                "id": "npmDeps.upToDate",
+                "description": "Color for up-to-date packages",
+                "defaults": {
+                    "dark": "#4CAF50",
+                    "light": "#2E7D32",
+                    "highContrast": "#00FF00"
+                }
+            },
+            {
+                "id": "npmDeps.updateAvailable",
+                "description": "Color for packages with updates available",
+                "defaults": {
+                    "dark": "#FF9800",
+                    "light": "#F57C00",
+                    "highContrast": "#FFFF00"
+                }
+            }
+        ],
+        "commands": [
+            {
+                "command": "npmDeps.updateVersion",
+                "title": "%command.updateVersion%"
+            },
+            {
+                "command": "npmDeps.updateAllVersions",
+                "title": "%command.updateAllVersions%"
+            },
+            {
+                "command": "npmDeps.showUpToDate",
+                "title": "%command.showUpToDate%"
+            },
+            {
+                "command": "npmDeps.openOnNpm",
+                "title": "%command.openOnNpm%"
+            },
+            {
+                "command": "npmDeps.retryFetch",
+                "title": "Retry Version Check"
+            },
+            {
+                "command": "npmDeps.setRegistryToken",
+                "title": "Set Registry Auth Token"
+            }
+        ],
+        "configuration": {
+            "title": "%config.title%",
+            "properties": {
+                "npmDeps.enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "%config.enabled.description%"
+                },
+                "npmDeps.showPrerelease": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "%config.showPrerelease.description%"
+                },
+                "npmDeps.cacheTTLMinutes": {
+                    "type": "number",
+                    "default": 60,
+                    "description": "%config.cacheTTLMinutes.description%"
+                },
+                "npmDeps.registryUrl": {
+                    "type": "string",
+                    "default": "https://registry.npmjs.org",
+                    "description": "%config.registryUrl.description%"
+                }
+            }
+        }
+    },
+    "scripts": {
+        "vscode:prepublish": "npm run esbuild-base -- --production",
+        "esbuild-base": "node esbuild.js",
+        "esbuild": "npm run esbuild-base -- --sourcemap",
+        "esbuild-watch": "npm run esbuild-base -- --sourcemap --watch",
+        "compile": "tsc -p ./",
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile && npm run esbuild-base -- --sourcemap",
+        "test": "mocha 'out/test/unit/**/*.test.js'",
+        "format": "biome format --write src",
+        "lint": "biome check src",
+        "publish:vsx": "./publish.sh vsx",
+        "publish:ovsx": "./publish.sh ovsx",
+        "publish:all": "./publish.sh all",
+        "prepare": "husky",
+        "uat": "npm run compile && node esbuild.js && node scripts/uat.mjs",
+        "lint:fix": "biome check --write src",
+        "check": "npm run lint && npm test"
+    },
+    "dependencies": {
+        "jsonc-parser": "^3.3.1",
+        "semver": "^7.8.5"
+    },
+    "devDependencies": {
+        "@biomejs/biome": "^2.6.4",
+        "@types/chai": "^5.2.3",
+        "@types/mocha": "^10.0.10",
+        "@types/node": "^26.6.6",
+        "@types/semver": "^7.8.0",
+        "@types/vscode": "1.85.0",
+        "@vscode/test-electron": "^3.1.0",
+        "chai": "^6.3.0",
+        "esbuild": "^0.28.2",
+        "husky": "^9.1.7",
+        "lint-staged": "^17.6.0",
+        "mocha": "^12.0.3",
+        "typescript": "^7.0.2"
+    },
+    "lint-staged": {
+        "*.ts": [
+            "npx @biomejs/biome check --write --no-errors-on-unmatched"
+        ]
+    },
+    "allowScripts": {
+        "esbuild@0.28.2": true
+    }
+}

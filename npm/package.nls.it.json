@@ -1,0 +1,11 @@
+{
+  "command.updateVersion": "Aggiorna versione dipendenza",
+  "command.updateAllVersions": "Aggiorna tutte le dipendenze",
+  "command.showUpToDate": "Mostra stato aggiornamento pacchetto",
+  "command.openOnNpm": "Apri su NPM",
+  "config.title": "Aggiornamento dipendenze NPM",
+  "config.enabled.description": "Abilita o disabilita l'estensione",
+  "config.showPrerelease.description": "Includi versioni pre-release nei suggerimenti",
+  "config.cacheTTLMinutes.description": "TTL cache per i dati delle versioni NPM (minuti)",
+  "config.registryUrl.description": "URL del registro NPM"
+}

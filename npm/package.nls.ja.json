@@ -1,0 +1,11 @@
+{
+  "command.updateVersion": "依存関係バージョンを更新",
+  "command.updateAllVersions": "すべての依存関係を更新",
+  "command.showUpToDate": "パッケージの最新状態を表示",
+  "command.openOnNpm": "NPM で開く",
+  "config.title": "NPM 依存関係アップデーター",
+  "config.enabled.description": "拡張機能の有効/無効を切り替え",
+  "config.showPrerelease.description": "バージョンヒントにプレリリース版を含める",
+  "config.cacheTTLMinutes.description": "NPM バージョンデータのキャッシュ TTL (分)",
+  "config.registryUrl.description": "NPM レジストリ URL"
+}
