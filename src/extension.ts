@@ -11,6 +11,7 @@ import { analyzeVersionUpdate } from "./core/versionAnalyzer";
 import { isCoveredBySpecifier } from "./core/versionResolver";
 import { PyDepsCodeLensProvider } from "./providers/codeLensProvider";
 import { PyDepsHoverProvider } from "./providers/hoverProvider";
+import { fetchVulnerabilityDetail } from "./providers/osvClient";
 import { getLatestCompatible } from "./providers/versionService";
 import { getConfig, onConfigChange } from "./utils/configuration";
 import {
@@ -294,6 +295,36 @@ export function activate(context: vscode.ExtensionContext): void {
 	);
 
 	context.subscriptions.push(openOnPyPICommand);
+
+	// Report the advisories behind a vulnerability lens. The lens already
+	// carries the ids, so this only has to present them.
+	const showVulnerabilitiesCommand = vscode.commands.registerCommand(
+		"pyDepsHint.showVulnerabilities",
+		async (packageName: string, version: string, ids: string[]) => {
+			const items = await Promise.all(
+				ids.map(async (id) => {
+					const detail = await fetchVulnerabilityDetail(id);
+					return {
+						label: id,
+						description: detail?.severity ?? "",
+						detail: detail?.summary ?? "",
+					};
+				}),
+			);
+
+			const picked = await vscode.window.showQuickPick(items, {
+				title: `${packageName} ${version}: ${ids.length} known ${ids.length === 1 ? "vulnerability" : "vulnerabilities"}`,
+				placeHolder: "Select an advisory to open it on osv.dev",
+			});
+			if (picked) {
+				vscode.env.openExternal(
+					vscode.Uri.parse(`https://osv.dev/vulnerability/${picked.label}`),
+				);
+			}
+		},
+	);
+
+	context.subscriptions.push(showVulnerabilitiesCommand);
 
 	// Register CodeLens Provider for version information and updates
 	const selector: vscode.DocumentSelector = [
