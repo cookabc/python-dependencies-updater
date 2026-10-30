@@ -120,8 +120,6 @@ src/
 ├── types/index.ts
 ├── test/                  # Mocha unit tests
 └── extension.ts           # Entry point
-
-npm/                       # the npm ecosystem, shipped as its own extension
 ```
 
 ## Development
@@ -132,16 +130,6 @@ npm run compile   # tsc
 npm test          # mocha 'out/test/unit/**/*.test.js'
 npm run lint      # biome check --write src
 npm run uat       # end-to-end pass against scripts/uat-fixture
-```
-
-The npm ecosystem lives in `npm/` as a separate package with its own
-dependencies and test suite. It is published as its own extension, so it is
-not bundled into this one:
-
-```bash
-npm run npm:install   # npm ci inside npm/
-npm run npm:check     # lint and test the npm package
-npm run check:all     # both packages
 ```
 
 ## Publishing

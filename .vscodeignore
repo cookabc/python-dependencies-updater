@@ -22,5 +22,3 @@ publish.sh
 .DS_Store
 .env
 .env.*
-# The npm ecosystem lives here as its own package; it ships separately.
-npm/**
