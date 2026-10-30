@@ -129,11 +129,7 @@
             {
                 "id": "toml",
                 "aliases": [
-                    "pyproject.toml",
-                    "TOML"
-                ],
-                "extensions": [
-                    ".toml"
+                    "pyproject.toml"
                 ],
                 "filenames": [
                     "pyproject.toml"
