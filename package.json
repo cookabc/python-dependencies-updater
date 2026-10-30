@@ -19,6 +19,7 @@
         "theme": "dark"
     },
     "engines": {
+        "node": ">=22.0.0",
         "vscode": "^1.85.0"
     },
     "categories": [
@@ -151,12 +152,14 @@
         "pretest": "npm run compile",
         "test": "mocha 'out/test/unit/**/*.test.js'",
         "format": "biome format --write src",
-        "lint": "biome check --write src",
+        "lint": "biome check src",
         "publish:vsx": "./publish.sh vsx",
         "publish:ovsx": "./publish.sh ovsx",
         "publish:all": "./publish.sh all",
         "prepare": "husky",
-        "uat": "npm run compile && node esbuild.js && node scripts/uat.mjs"
+        "uat": "npm run compile && node esbuild.js && node scripts/uat.mjs",
+        "lint:fix": "biome check --write src",
+        "check": "npm run lint && npm test"
     },
     "dependencies": {
         "@iarna/toml": "^2.2.5"
