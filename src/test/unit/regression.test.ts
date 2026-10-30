@@ -95,6 +95,15 @@ describe("Regression: TOML file detection", () => {
 		assert.strictEqual(deps.length, 1);
 		assert.strictEqual(deps[0].packageName, "flask");
 	});
+
+	it("parses a Poetry-only pyproject.toml, which has no [project] table", () => {
+		const deps = parseDependencies(
+			"pyproject.toml",
+			'[tool.poetry.dependencies]\nrequests = "^2.31.0"\n',
+		);
+		assert.strictEqual(deps.length, 1);
+		assert.strictEqual(deps[0].packageName, "requests");
+	});
 });
 
 describe("Regression: specifier semantics", () => {

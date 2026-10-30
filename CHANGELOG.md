@@ -4,8 +4,33 @@ All notable changes to the "Python Dependencies Updater" extension will be docum
 
 ## [Unreleased]
 
+### Added
+
+- Dependencies pinned to an exact version are checked against OSV.dev. A
+  shield hint marks the ones with known advisories, the status bar turns red,
+  and clicking lists each advisory with its severity. Only exact pins are
+  checked: a range states which versions are allowed, not which one is
+  installed. Disable with `pyDepsHint.checkVulnerabilities`.
+- `[dependency-groups]` (PEP 735) is parsed, so uv and pip projects that keep
+  development dependencies there get hints. `@iarna/toml` rejects the mixed
+  array PEP 735 allows (`[{include-group = "dev"}, "pytest>=7"]`) and that
+  error used to drop every hint in the file; parsing now retries around it.
+- Poetry tables are parsed: `[tool.poetry.dependencies]`,
+  `[tool.poetry.dev-dependencies]` and
+  `[tool.poetry.group.<name>.dependencies]`. `^`/`~` constraints are
+  translated to their PEP 440 ranges, git/path-only sources are skipped, and
+  `python` is ignored. A Poetry-only `pyproject.toml` with no `[project]`
+  table is now recognized instead of being treated as unparseable.
+
 ### Fixed
 
+- The extension no longer contributes `id: "toml"` with
+  `extensions: [".toml"]`, which routed every TOML file (Cargo.toml,
+  config.toml) to this extension's language configuration. That configuration
+  declared empty bracket and auto-closing pairs, removing them for those
+  files, and the id collided with installed TOML syntax extensions. It is now
+  scoped to the `pyproject.toml` filename, and its language configuration
+  carries real TOML brackets.
 - "Update All" plans safe updates from the document text after the registry
   requests return. Inserting or deleting lines while versions load no longer
   makes a patch bump land on the wrong line. Risky updates use that same

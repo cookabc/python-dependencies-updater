@@ -50,7 +50,8 @@ export function detectFileType(
 			lowerName.endsWith("pyproject.toml") &&
 			(content.includes("[project]") ||
 				content.includes("project.dependencies") ||
-				content.includes("[dependency-groups]"))
+				content.includes("[dependency-groups]") ||
+				content.includes("[tool.poetry"))
 		) {
 			return { type: FileType.PyProject, isValid: true, confidence: 1.0 };
 		}

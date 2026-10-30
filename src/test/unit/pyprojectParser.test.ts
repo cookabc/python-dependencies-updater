@@ -1,5 +1,8 @@
 import * as assert from "node:assert";
-import { parsePyProjectDocument } from "../../core/pyprojectParser";
+import {
+	parsePyProjectDocument,
+	poetryConstraintToPep440,
+} from "../../core/pyprojectParser";
 
 describe("PyProject Parser", () => {
 	it("should parse [project] dependencies", () => {
@@ -167,6 +170,106 @@ dev = [
 			assert.strictEqual(result[0].section, "project.dependencies");
 			assert.strictEqual(result[1].section, "dependency-groups");
 			assert.strictEqual(result[1].extra, "dev");
+		});
+	});
+
+	describe("Poetry tables", () => {
+		it("parses [tool.poetry.dependencies]", () => {
+			const content = `[tool.poetry.dependencies]
+requests = "^2.31.0"
+flask = "^3.0"
+`;
+			const result = parsePyProjectDocument(content);
+			assert.strictEqual(result.length, 2);
+			assert.strictEqual(result[0].packageName, "requests");
+			assert.strictEqual(result[0].versionSpecifier, ">=2.31.0,<3.0.0");
+			assert.strictEqual(result[0].section, "tool.poetry.dependencies");
+		});
+
+		it("reads the version out of an inline table", () => {
+			const content = `[tool.poetry.dependencies]
+flask = { version = "^3.0", extras = ["async"] }
+`;
+			const result = parsePyProjectDocument(content);
+			assert.strictEqual(result.length, 1);
+			assert.strictEqual(result[0].packageName, "flask");
+			assert.strictEqual(result[0].versionSpecifier, ">=3.0,<4.0");
+		});
+
+		it("skips the python constraint, which is not a PyPI package", () => {
+			const content = `[tool.poetry.dependencies]
+python = "^3.11"
+requests = "^2.31.0"
+`;
+			const result = parsePyProjectDocument(content);
+			assert.deepStrictEqual(
+				result.map((d) => d.packageName),
+				["requests"],
+			);
+		});
+
+		it("skips git and path sources, which have no registry version", () => {
+			const content = `[tool.poetry.dependencies]
+django = { git = "https://github.com/django/django.git" }
+mylib = { path = "../mylib" }
+requests = "^2.31.0"
+`;
+			const result = parsePyProjectDocument(content);
+			assert.deepStrictEqual(
+				result.map((d) => d.packageName),
+				["requests"],
+			);
+		});
+
+		it("parses dev-dependencies and group dependencies", () => {
+			const content = `[tool.poetry.dev-dependencies]
+black = "^24.0"
+
+[tool.poetry.group.docs.dependencies]
+sphinx = "^7.0"
+`;
+			const result = parsePyProjectDocument(content);
+			assert.strictEqual(result.length, 2);
+			assert.strictEqual(result[0].section, "tool.poetry.dev-dependencies");
+			assert.strictEqual(result[1].section, "tool.poetry.group");
+			assert.strictEqual(result[1].extra, "docs");
+		});
+
+		it("does not confuse a name repeated across tables", () => {
+			const content = `[tool.poetry.dependencies]
+pytest = "^7.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0"
+`;
+			const result = parsePyProjectDocument(content);
+			assert.strictEqual(result.length, 2);
+			assert.strictEqual(result[0].versionSpecifier, ">=7.0,<8.0");
+			assert.strictEqual(result[1].versionSpecifier, ">=8.0,<9.0");
+			assert.notStrictEqual(result[0].line, result[1].line);
+		});
+	});
+
+	describe("poetryConstraintToPep440", () => {
+		it("converts caret ranges at the first non-zero segment", () => {
+			assert.strictEqual(
+				poetryConstraintToPep440("^2.31.0"),
+				">=2.31.0,<3.0.0",
+			);
+			assert.strictEqual(poetryConstraintToPep440("^0.2.3"), ">=0.2.3,<0.3.0");
+			assert.strictEqual(poetryConstraintToPep440("^0.0.3"), ">=0.0.3,<0.0.4");
+		});
+
+		it("converts tilde ranges at the minor segment", () => {
+			assert.strictEqual(poetryConstraintToPep440("~1.2.3"), ">=1.2.3,<1.3.0");
+			assert.strictEqual(poetryConstraintToPep440("~1.2"), ">=1.2,<1.3.0");
+			assert.strictEqual(poetryConstraintToPep440("~1"), ">=1,<2.0.0");
+		});
+
+		it("passes PEP 440 constraints through untouched", () => {
+			assert.strictEqual(poetryConstraintToPep440(">=1.0,<2.0"), ">=1.0,<2.0");
+			assert.strictEqual(poetryConstraintToPep440("==1.2.3"), "==1.2.3");
+			assert.strictEqual(poetryConstraintToPep440("*"), "*");
 		});
 	});
 });

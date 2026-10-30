@@ -11,9 +11,25 @@ interface PyProject {
 	// PEP 735. Entries are requirement strings, or `{include-group = "..."}`
 	// tables that pull in another group.
 	"dependency-groups"?: Record<string, DependencyGroupEntry[]>;
+	tool?: {
+		poetry?: {
+			dependencies?: Record<string, PoetryDependency>;
+			"dev-dependencies"?: Record<string, PoetryDependency>;
+			group?: Record<
+				string,
+				{ dependencies?: Record<string, PoetryDependency> }
+			>;
+		};
+	};
 }
 
 type DependencyGroupEntry = string | { "include-group"?: string };
+
+/**
+ * Poetry dependencies are either a plain constraint string or an inline table
+ * whose `version` key holds it. Git/path/url sources have no version to check.
+ */
+type PoetryDependency = string | { version?: string };
 
 /**
  * Parse TOML, tolerating the mixed array PEP 735 allows inside
@@ -105,11 +121,181 @@ export function parsePyProjectDocument(content: string): PyProjectDependency[] {
 			}
 		}
 
+		// 4. Parse Poetry tables. `python` is the interpreter constraint, not a
+		// package on PyPI, so it is dropped along with source-only entries.
+		const poetry = parsed.tool?.poetry;
+		if (poetry) {
+			dependencies.push(
+				...extractPoetryTable(
+					poetry.dependencies,
+					"tool.poetry.dependencies",
+					lines,
+				),
+				...extractPoetryTable(
+					poetry["dev-dependencies"],
+					"tool.poetry.dev-dependencies",
+					lines,
+				),
+			);
+			for (const [group, table] of Object.entries(poetry.group ?? {})) {
+				dependencies.push(
+					...extractPoetryTable(
+						table?.dependencies,
+						"tool.poetry.group",
+						lines,
+						group,
+					),
+				);
+			}
+		}
+
 		return dependencies;
 	} catch (_e) {
 		// Fallback or silent failure for invalid TOML
 		return [];
 	}
+}
+
+/**
+ * Translate Poetry's caret and tilde constraints into PEP 440 ranges, so the
+ * existing resolver can reason about them.
+ *
+ *   ^1.2.3  → >=1.2.3,<2.0.0     (first non-zero segment is the ceiling)
+ *   ^0.2.3  → >=0.2.3,<0.3.0
+ *   ~1.2.3  → >=1.2.3,<1.3.0
+ *   ~1       → >=1,<2
+ *
+ * Everything else (`>=`, `==`, `*`, compound ranges) is passed through.
+ */
+export function poetryConstraintToPep440(constraint: string): string {
+	const trimmed = constraint.trim();
+	if (!trimmed) {
+		return "";
+	}
+
+	const caret = trimmed.match(/^\^(\d+(?:\.\d+)*)(.*)$/);
+	if (caret) {
+		const release = caret[1].split(".").map((part) => Number(part));
+		const ceiling = caretCeiling(release);
+		return `>=${caret[1]}${caret[2]},<${ceiling}`;
+	}
+
+	const tilde = trimmed.match(/^~(\d+(?:\.\d+)*)(.*)$/);
+	if (tilde) {
+		const release = tilde[1].split(".").map((part) => Number(part));
+		// `~1` allows the whole 1.x line; `~1.2` and `~1.2.3` pin the minor.
+		const ceiling =
+			release.length === 1
+				? `${release[0] + 1}.0.0`
+				: `${release[0]}.${release[1] + 1}.0`;
+		return `>=${tilde[1]}${tilde[2]},<${ceiling}`;
+	}
+
+	return trimmed;
+}
+
+/** Upper bound of a caret range: bump the first non-zero segment. */
+function caretCeiling(release: number[]): string {
+	const next = release.slice();
+	let index = next.findIndex((part) => part !== 0);
+	if (index === -1) {
+		index = next.length - 1;
+	}
+	next[index] += 1;
+	for (let i = index + 1; i < next.length; i++) {
+		next[i] = 0;
+	}
+	return next.join(".");
+}
+
+/**
+ * One Poetry dependency table (`[tool.poetry.dependencies]` and friends).
+ *
+ * The value is either a constraint string or an inline table whose `version`
+ * holds it. Entries with only a `git`/`path`/`url` source carry no registry
+ * version, and `python` is the interpreter constraint rather than a package.
+ */
+function extractPoetryTable(
+	table: Record<string, PoetryDependency> | undefined,
+	section: string,
+	lines: string[],
+	extra?: string,
+): PyProjectDependency[] {
+	if (!table) {
+		return [];
+	}
+
+	const result: PyProjectDependency[] = [];
+	for (const [packageName, value] of Object.entries(table)) {
+		if (packageName.toLowerCase() === "python") {
+			continue;
+		}
+		const rawConstraint =
+			typeof value === "string" ? value : (value?.version ?? "");
+		if (!rawConstraint) {
+			continue;
+		}
+		const versionSpecifier = poetryConstraintToPep440(rawConstraint);
+		if (!versionSpecifier) {
+			continue;
+		}
+
+		const lineIndex = findPoetryLine(lines, packageName, section, extra);
+		if (lineIndex === -1) {
+			continue;
+		}
+		const line = lines[lineIndex];
+		const span = findDependencySpan(
+			line,
+			`${packageName} = "${rawConstraint}"`,
+			packageName,
+		);
+
+		result.push({
+			packageName,
+			versionSpecifier,
+			section: section as PyProjectDependency["section"],
+			extra,
+			path: ["tool", "poetry", section, packageName],
+			line: lineIndex,
+			startColumn: span?.startColumn ?? 0,
+			endColumn: span?.endColumn ?? line.length,
+		});
+	}
+
+	return result;
+}
+
+/**
+ * Line of a Poetry dependency, limited to its own table so a name repeated in
+ * another table resolves to its own entry.
+ */
+function findPoetryLine(
+	lines: string[],
+	packageName: string,
+	section: string,
+	extra?: string,
+): number {
+	const expectedTable =
+		section === "tool.poetry.group"
+			? `tool.poetry.group.${extra}.dependencies`
+			: section;
+	const keyPattern = new RegExp(
+		`^\\s*${packageName.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*=`,
+	);
+	let currentTable = "";
+
+	for (let i = 0; i < lines.length; i++) {
+		const line = lines[i].trim();
+		if (line.startsWith("[") && line.endsWith("]")) {
+			currentTable = line.slice(1, -1);
+			continue;
+		}
+		if (currentTable === expectedTable && keyPattern.test(lines[i])) {
+			return i;
+		}
+	}
+	return -1;
 }
 
 function extractDependencies(

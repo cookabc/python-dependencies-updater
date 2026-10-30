@@ -12,11 +12,15 @@ Inline version hints and one-click upgrades for `requirements.txt` and
 
 ## Features
 
-- **Both formats** — reads `requirements.txt` and PEP 621 `pyproject.toml`.
+- **Both formats** — reads `requirements.txt` and `pyproject.toml`.
+- **PEP 621, PEP 735 and Poetry** — `[project.dependencies]`,
+  `[project.optional-dependencies]`, `[dependency-groups]` and
+  `[tool.poetry.dependencies]` (including dev and group tables) all work.
 - **Version detection** — each dependency shows its real status against PyPI.
 - **Risk analysis** — patch and minor updates are marked safe; major updates are flagged separately.
 - **One-click updates** — click a version hint to move that dependency to the latest allowed version.
-- **Constraint-aware suggestions** — the dependency's own specifier is respected (`==`, `>=`, `~=`, `==1.2.*` wildcards, environment markers).
+- **Constraint-aware suggestions** — the dependency's own specifier is respected (`==`, `>=`, `~=`, `==1.2.*` wildcards, environment markers, Poetry `^`/`~`).
+- **Vulnerability check** — exact pins are checked against OSV.dev and flagged in place.
 - **Hover details** — hover a dependency for its PyPI summary and latest release.
 - **Batch updates** — the status bar and command palette upgrade every safe package at once, with a confirmation step for majors.
 - **Smart caching** — PyPI responses are cached, so editing stays off the network.
@@ -42,12 +46,31 @@ Or search for "Python Dependencies Updater" in the Extensions view (Ctrl+Shift+X
 
 ### pyproject.toml
 
-Both `[project]` dependencies and `[project.optional-dependencies]` groups are
-supported, with the same status hints and update actions.
+PEP 621 `[project]` dependencies, `[project.optional-dependencies]` groups and
+PEP 735 `[dependency-groups]` are all supported, with the same status hints and
+update actions.
 
-Only PEP 621 tables are parsed. Poetry's `[tool.poetry.dependencies]` is not
-supported yet. Multi-line and single-line dependency arrays both work, and each
-dependency is rewritten in place without touching its neighbours on the line.
+Poetry projects work too: `[tool.poetry.dependencies]`,
+`[tool.poetry.dev-dependencies]` and `[tool.poetry.group.<name>.dependencies]`
+are read, and Poetry's `^`/`~` constraints are translated to their PEP 440
+ranges before the version is resolved. A dependency given only as a `git` or
+`path` source is skipped, and `python` is ignored because it constrains the
+interpreter rather than naming a package.
+
+Multi-line and single-line dependency arrays both work, and each dependency is
+rewritten in place without touching its neighbours on the line.
+
+### Vulnerability check
+
+Every dependency pinned to an exact version (`==1.2.3`) is checked against
+[OSV.dev](https://osv.dev). When advisories exist, a shield hint appears next
+to the dependency and the status bar turns red; clicking it lists the
+advisories with their severity and opens the chosen one on osv.dev.
+
+Only exact pins are checked. A range such as `>=2.0` or `~=4.2` states which
+versions are allowed, not which one is installed, so checking it would report
+vulnerabilities the user may never run into. Disable the whole check with
+`pyDepsHint.checkVulnerabilities`.
 
 ### Batch updates
 
@@ -64,6 +87,7 @@ an explicit confirmation.
 | `pyDepsHint.cacheTTLMinutes` | `60` | Cache TTL in minutes |
 | `pyDepsHint.supportPyProject` | `true` | Enable or disable `pyproject.toml` support |
 | `pyDepsHint.registryUrl` | `https://pypi.org` | Custom registry exposing the PyPI JSON API |
+| `pyDepsHint.checkVulnerabilities` | `true` | Check exact pins against OSV.dev |
 
 ## Project structure
 
@@ -75,13 +99,15 @@ src/
 │   ├── packageName.ts     # Distribution name normalisation
 │   ├── parser.ts          # requirements.txt parsing
 │   ├── pep440.ts          # PEP 440 version comparison
-│   ├── pyprojectParser.ts # pyproject.toml parsing
+│   ├── pyprojectParser.ts # pyproject.toml parsing (PEP 621/735, Poetry)
 │   ├── unifiedParser.ts   # One interface over both formats
 │   ├── versionAnalyzer.ts # Version risk analysis
-│   └── versionResolver.ts # Version resolution
+│   ├── versionResolver.ts # Version resolution
+│   └── vulnerabilityScan.ts # Which pins can be checked against OSV
 ├── providers/
 │   ├── codeLensProvider.ts # CodeLens entries
 │   ├── hoverProvider.ts    # Hover summaries
+│   ├── osvClient.ts        # OSV.dev client
 │   ├── pypiClient.ts       # PyPI client
 │   └── versionService.ts   # Version service
 ├── utils/
