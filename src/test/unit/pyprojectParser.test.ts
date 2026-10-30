@@ -97,4 +97,76 @@ line-length = 88`;
 		const result = parsePyProjectDocument(content);
 		assert.strictEqual(result.length, 0);
 	});
+
+	describe("PEP 735 [dependency-groups]", () => {
+		it("parses a dependency group", () => {
+			const content = `[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+    "ruff==0.5.0",
+]`;
+			const result = parsePyProjectDocument(content);
+			assert.strictEqual(result.length, 2);
+			assert.strictEqual(result[0].packageName, "pytest");
+			assert.strictEqual(result[0].versionSpecifier, ">=7.0.0");
+			assert.strictEqual(result[0].section, "dependency-groups");
+			assert.strictEqual(result[0].extra, "dev");
+			assert.strictEqual(result[1].packageName, "ruff");
+		});
+
+		it("parses several groups in one table", () => {
+			const content = `[dependency-groups]
+dev = ["pytest>=7.0.0"]
+docs = ["sphinx>=5.0"]`;
+			const result = parsePyProjectDocument(content);
+			assert.strictEqual(result.length, 2);
+			assert.strictEqual(result[0].extra, "dev");
+			assert.strictEqual(result[1].extra, "docs");
+			assert.strictEqual(result[1].section, "dependency-groups");
+		});
+
+		it("skips include-group tables, which carry no version", () => {
+			const content = `[dependency-groups]
+test = [
+    {include-group = "dev"},
+    "pytest>=7.0.0",
+]`;
+			const result = parsePyProjectDocument(content);
+			assert.strictEqual(result.length, 1);
+			assert.strictEqual(result[0].packageName, "pytest");
+		});
+
+		it("keeps the same requirement in two groups on its own lines", () => {
+			const content = `[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+]
+test = [
+    "pytest>=7.0.0",
+]`;
+			const result = parsePyProjectDocument(content);
+			assert.strictEqual(result.length, 2);
+			assert.strictEqual(result[0].extra, "dev");
+			assert.strictEqual(result[1].extra, "test");
+			assert.notStrictEqual(result[0].line, result[1].line);
+		});
+
+		it("parses groups alongside project dependencies", () => {
+			const content = `[project]
+name = "demo"
+dependencies = [
+    "flask==2.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=7.0.0",
+]`;
+			const result = parsePyProjectDocument(content);
+			assert.strictEqual(result.length, 2);
+			assert.strictEqual(result[0].section, "project.dependencies");
+			assert.strictEqual(result[1].section, "dependency-groups");
+			assert.strictEqual(result[1].extra, "dev");
+		});
+	});
 });

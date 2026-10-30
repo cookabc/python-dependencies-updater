@@ -16,8 +16,11 @@ export interface PyProjectDependency {
 	line: number;
 	startColumn: number;
 	endColumn: number;
-	section: "project.dependencies" | "project.optional-dependencies";
-	extra?: string; // For optional dependencies
+	section:
+		| "project.dependencies"
+		| "project.optional-dependencies"
+		| "dependency-groups";
+	extra?: string; // For optional dependencies / dependency groups
 	path: string[]; // TOML path to the dependency
 }
 

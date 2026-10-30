@@ -49,7 +49,8 @@ export function detectFileType(
 		if (
 			lowerName.endsWith("pyproject.toml") &&
 			(content.includes("[project]") ||
-				content.includes("project.dependencies"))
+				content.includes("project.dependencies") ||
+				content.includes("[dependency-groups]"))
 		) {
 			return { type: FileType.PyProject, isValid: true, confidence: 1.0 };
 		}
@@ -64,6 +65,7 @@ export function detectFileType(
 		"[build-system]",
 		"project.dependencies",
 		"project.optional-dependencies",
+		"[dependency-groups]",
 	];
 
 	const hasPyProjectIndicators = pyprojectIndicators.some((indicator) => {
@@ -205,6 +207,11 @@ export function getDependencyStats(deps: AnyDependency[]): {
 			} else if (dep.section === "project.optional-dependencies" && dep.extra) {
 				stats.optionalDependencies++;
 				stats.byExtra[dep.extra] = (stats.byExtra[dep.extra] || 0) + 1;
+			} else if (dep.section === "dependency-groups" && dep.extra) {
+				// PEP 735 groups are development dependencies, so they are not
+				// part of the main set; they are reported per group like extras.
+				stats.optionalDependencies++;
+				stats.byExtra[dep.extra] = (stats.byExtra[dep.extra] || 0) + 1;
 			}
 		} else {
 			// ParsedDependency (requirements.txt) - count as main dependency
@@ -241,6 +248,14 @@ export function filterDependencies(
 					return false;
 				}
 				return true;
+			} else if (dep.section === "dependency-groups") {
+				if (!includeOptional) {
+					return false;
+				}
+				if (extras.length > 0 && !extras.includes(dep.extra || "")) {
+					return false;
+				}
+				return true;
 			}
 		} else {
 			// ParsedDependency - always include in main dependencies
@@ -268,6 +283,11 @@ export function groupDependencies(deps: AnyDependency[]): {
 			if (dep.section === "project.dependencies") {
 				result.main.push(dep);
 			} else if (dep.section === "project.optional-dependencies" && dep.extra) {
+				if (!result.optional[dep.extra]) {
+					result.optional[dep.extra] = [];
+				}
+				result.optional[dep.extra].push(dep);
+			} else if (dep.section === "dependency-groups" && dep.extra) {
 				if (!result.optional[dep.extra]) {
 					result.optional[dep.extra] = [];
 				}

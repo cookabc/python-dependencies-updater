@@ -8,6 +8,38 @@ interface PyProject {
 		dependencies?: string[];
 		"optional-dependencies"?: Record<string, string[]>;
 	};
+	// PEP 735. Entries are requirement strings, or `{include-group = "..."}`
+	// tables that pull in another group.
+	"dependency-groups"?: Record<string, DependencyGroupEntry[]>;
+}
+
+type DependencyGroupEntry = string | { "include-group"?: string };
+
+/**
+ * Parse TOML, tolerating the mixed array PEP 735 allows inside
+ * `[dependency-groups]`: `[{include-group = "dev"}, "pytest>=7"]`. @iarna/toml
+ * enforces homogeneous arrays and rejects that, which would drop every hint in
+ * the file. The include tables are swapped for a placeholder that fails the
+ * package-name check, so the rest still parses and line numbers stay aligned
+ * (the substitution is inline, so no line is added or removed).
+ */
+function parseToml(content: string): PyProject | null {
+	try {
+		return toml.parse(content) as PyProject;
+	} catch {
+		const sanitized = content.replace(
+			/\{\s*include-group\s*=\s*"[^"]*"\s*\}/g,
+			'"__include-group__"',
+		);
+		if (sanitized === content) {
+			return null;
+		}
+		try {
+			return toml.parse(sanitized) as PyProject;
+		} catch {
+			return null;
+		}
+	}
 }
 
 /**
@@ -15,7 +47,10 @@ interface PyProject {
  */
 export function parsePyProjectDocument(content: string): PyProjectDependency[] {
 	try {
-		const parsed = toml.parse(content) as PyProject;
+		const parsed = parseToml(content);
+		if (!parsed) {
+			return [];
+		}
 		const dependencies: PyProjectDependency[] = [];
 		const lines = content.split("\n");
 
@@ -48,6 +83,28 @@ export function parsePyProjectDocument(content: string): PyProjectDependency[] {
 			}
 		}
 
+		// 3. Parse [dependency-groups] (PEP 735). Entries are requirement
+		// strings; `{include-group = "..."}` tables only reference another
+		// group and carry no version of their own, so they are skipped here.
+		if (parsed["dependency-groups"]) {
+			for (const [group, entries] of Object.entries(
+				parsed["dependency-groups"],
+			)) {
+				const requirements = entries.filter(
+					(entry): entry is string => typeof entry === "string",
+				);
+				dependencies.push(
+					...extractDependencies(
+						requirements,
+						"dependency-groups",
+						lines,
+						content,
+						group,
+					),
+				);
+			}
+		}
+
 		return dependencies;
 	} catch (_e) {
 		// Fallback or silent failure for invalid TOML
@@ -57,7 +114,10 @@ export function parsePyProjectDocument(content: string): PyProjectDependency[] {
 
 function extractDependencies(
 	deps: string[],
-	section: "project.dependencies" | "project.optional-dependencies",
+	section:
+		| "project.dependencies"
+		| "project.optional-dependencies"
+		| "dependency-groups",
 	lines: string[],
 	_content: string,
 	extra?: string,
@@ -100,9 +160,7 @@ function extractDependencies(
 				versionSpecifier,
 				section,
 				extra,
-				path: extra
-					? ["project", "optional-dependencies", extra, packageName]
-					: ["project", "dependencies", packageName],
+				path: dependencyPath(section, extra, packageName),
 				line: lineIndex,
 				startColumn: span?.startColumn ?? 0,
 				endColumn: span?.endColumn ?? line.length,
@@ -111,6 +169,21 @@ function extractDependencies(
 	}
 
 	return result;
+}
+
+/** TOML path of one dependency, for diagnostics and structured edits. */
+function dependencyPath(
+	section: string,
+	extra: string | undefined,
+	packageName: string,
+): string[] {
+	if (section === "dependency-groups") {
+		return ["dependency-groups", extra ?? "", packageName];
+	}
+	if (section === "project.optional-dependencies") {
+		return ["project", "optional-dependencies", extra ?? "", packageName];
+	}
+	return ["project", "dependencies", packageName];
 }
 
 function findDependencyLine(
@@ -138,14 +211,20 @@ function findDependencyLine(
 		// Update section
 		if (line.startsWith("[") && line.endsWith("]")) {
 			currentSection = line.slice(1, -1);
-			if (!currentSection.includes("optional-dependencies")) {
+			if (
+				!currentSection.includes("optional-dependencies") &&
+				!currentSection.startsWith("dependency-groups")
+			) {
 				currentExtra = "";
 			}
 			continue;
 		}
 
-		// Update extra for optional-dependencies
-		if (currentSection.includes("optional-dependencies")) {
+		// Update extra for optional-dependencies and dependency-groups
+		if (
+			currentSection.includes("optional-dependencies") ||
+			currentSection.startsWith("dependency-groups")
+		) {
 			const match = line.match(/^([a-zA-Z0-9._-]+)\s*=/);
 			if (match) {
 				currentExtra = match[1];
@@ -177,6 +256,16 @@ function findDependencyLine(
 					) {
 						return i;
 					}
+				}
+			} else if (section === "dependency-groups") {
+				// Either [dependency-groups] with an inline group key, or
+				// [dependency-groups.<group>]. Both must match the group name so
+				// the same requirement in two groups lands on its own line.
+				if (currentSection === `dependency-groups.${extra}`) {
+					return i;
+				}
+				if (currentSection === "dependency-groups" && currentExtra === extra) {
+					return i;
 				}
 			}
 		}
@@ -278,8 +367,10 @@ export function isPyProjectToml(content: string): boolean {
 	try {
 		const parsed = toml.parse(content) as any;
 		return !!(
-			parsed.project &&
-			(parsed.project.dependencies || parsed.project["optional-dependencies"])
+			(parsed.project &&
+				(parsed.project.dependencies ||
+					parsed.project["optional-dependencies"])) ||
+			parsed["dependency-groups"]
 		);
 	} catch {
 		return false;
