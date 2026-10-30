@@ -3,6 +3,7 @@
   "command.updateAllVersions": "Mettre à jour tous les paquets vers la dernière version",
   "command.showUpToDate": "Afficher l'état de mise à jour du paquet",
   "command.openOnPyPI": "Ouvrir sur PyPI",
+  "command.showVulnerabilities": "Afficher les vulnérabilités connues",
   "colors.upToDate": "Couleur des paquets à jour",
   "colors.updateAvailable": "Couleur des paquets avec mises à jour disponibles",
   "config.title": "Indicateur de dépendances Python",
@@ -10,5 +11,6 @@
   "config.showPrerelease.description": "Inclure les versions pré-release dans les suggestions",
   "config.cacheTTLMinutes.description": "Durée du cache TTL pour les données de version PyPI (minutes)",
   "config.supportPyProject.description": "Activer ou désactiver le support de pyproject.toml",
-  "config.registryUrl.description": "URL du registre PyPI (pour les miroirs privés comme Artifactory ou devpi)"
+  "config.registryUrl.description": "URL du registre PyPI (pour les miroirs privés comme Artifactory ou devpi)",
+  "config.checkVulnerabilities.description": "Vérifier les versions exactes (==) sur OSV.dev pour les vulnérabilités connues"
 }

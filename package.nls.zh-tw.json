@@ -3,6 +3,7 @@
   "command.updateAllVersions": "將所有套件更新到最新版本",
   "command.showUpToDate": "顯示套件更新狀態",
   "command.openOnPyPI": "在 PyPI 中開啟",
+  "command.showVulnerabilities": "顯示已知漏洞",
   "colors.upToDate": "已是最新版本的套件的顏色",
   "colors.updateAvailable": "有可用更新的套件的顏色",
   "config.title": "Python 依賴提示",
@@ -10,5 +11,6 @@
   "config.showPrerelease.description": "在版本提示中包含預發布版本",
   "config.cacheTTLMinutes.description": "PyPI 版本資料的快取 TTL（分鐘）",
   "config.supportPyProject.description": "啟用或停用 pyproject.toml 支援",
-  "config.registryUrl.description": "PyPI 登錄表 URL（用於 Artifactory 或 devpi 等私有鏡像）"
+  "config.registryUrl.description": "PyPI 登錄表 URL（用於 Artifactory 或 devpi 等私有鏡像）",
+  "config.checkVulnerabilities.description": "對照 OSV.dev 檢查精確版本（==）的已知漏洞"
 }

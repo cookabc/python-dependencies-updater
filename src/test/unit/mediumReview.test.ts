@@ -123,8 +123,13 @@ describe("CodeLens cache, status bar, and debug logging", () => {
 
 	it("shares the in-memory version cache across PEP 503 names", async () => {
 		let calls = 0;
-		globalThis.fetch = (async () => {
-			calls++;
+		// Only registry lookups count here. The vulnerability scan also uses
+		// fetch, and its requests say nothing about version-cache sharing.
+		globalThis.fetch = (async (input: any) => {
+			const url = typeof input === "string" ? input : String(input?.url ?? "");
+			if (url.includes("pypi.org")) {
+				calls++;
+			}
 			return pypiResponse(["1.0.0", "2.0.0"]);
 		}) as unknown as typeof fetch;
 

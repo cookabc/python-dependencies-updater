@@ -16,8 +16,23 @@ export class StatusBarManager {
 		this.statusBarItem.command = "pyDepsHint.updateAllVersions";
 	}
 
-	updateStatus(updatesAvailable: number, totalPackages: number) {
-		if (updatesAvailable === 0) {
+	/**
+	 * `vulnerable` counts pinned dependencies with at least one known
+	 * vulnerability. It takes precedence over the update count: a known
+	 * vulnerability matters more than a version being behind.
+	 */
+	updateStatus(
+		updatesAvailable: number,
+		totalPackages: number,
+		vulnerable: number = 0,
+	) {
+		if (vulnerable > 0) {
+			this.statusBarItem.text = `$(shield) ${t("statusBarVulnerable", vulnerable)}`;
+			this.statusBarItem.tooltip = t("statusBarVulnerable", vulnerable);
+			this.statusBarItem.backgroundColor = new vscode.ThemeColor(
+				"statusBarItem.errorBackground",
+			);
+		} else if (updatesAvailable === 0) {
 			this.statusBarItem.text = `$(check) ${t("statusBarUpToDate", totalPackages)}`;
 			this.statusBarItem.tooltip = t("statusBarTooltipUpToDate");
 			this.statusBarItem.backgroundColor = undefined;

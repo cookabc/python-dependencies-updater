@@ -74,4 +74,6 @@ export interface ExtensionConfig {
 	cacheTTLMinutes: number;
 	supportPyProject: boolean;
 	registryUrl: string;
+	/** Check exact pins against OSV.dev for known vulnerabilities. */
+	checkVulnerabilities: boolean;
 }

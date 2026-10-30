@@ -8,6 +8,10 @@ import { versionCacheKey } from "../core/packageName";
 import { type AnyDependency, parseDependencies } from "../core/unifiedParser";
 import { analyzeVersionUpdate } from "../core/versionAnalyzer";
 import { isCoveredBySpecifier, resolveLatest } from "../core/versionResolver";
+import {
+	collectVulnerabilityTargets,
+	pinnedVersion,
+} from "../core/vulnerabilityScan";
 import type { PackageVersions, VersionInfo } from "../types";
 import { getConfig } from "../utils/configuration";
 import {
@@ -20,6 +24,7 @@ import {
 import { t } from "../utils/i18n";
 import { Logger } from "../utils/logger";
 import type { StatusBarManager } from "../utils/statusBar";
+import { osvKey, queryVulnerabilities } from "./osvClient";
 import { getPackageVersions } from "./versionService";
 
 /** How long a failed check stays sticky before the next resolve retries it */
@@ -59,6 +64,10 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 		string,
 		{ version: number; dependencies: AnyDependency[] }
 	> = new Map();
+	// Vulnerability ids per pinned dependency: "package@version" -> ids
+	private vulnerabilityCache: Map<string, string[]> = new Map();
+	// Pins already sent to OSV, so a failed lookup is not retried on every paint
+	private scannedPins: Set<string> = new Set();
 	// Track pending fetches to avoid duplicate requests
 	private pendingFetches: Set<string> = new Set();
 	// Optional status bar for update counts
@@ -75,6 +84,8 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 	public clearCache(): void {
 		this.versionCache.clear();
 		this.dependencyCache.clear();
+		this.vulnerabilityCache.clear();
+		this.scannedPins.clear();
 		this.pendingFetches.clear();
 	}
 
@@ -160,6 +171,31 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 				codeLenses.push(versionLens);
 			}
 
+			// Only an exact pin names a version OSV can be asked about.
+			if (config.checkVulnerabilities) {
+				const pinned = pinnedVersion(dep.versionSpecifier);
+				if (pinned) {
+					const packageNameWithoutExtras = dep.packageName.split("[")[0];
+					const ids = this.vulnerabilityCache.get(
+						osvKey(packageNameWithoutExtras, pinned),
+					);
+					if (ids && ids.length > 0) {
+						codeLenses.push(
+							new vscode.CodeLens(range, {
+								title: `$(shield) ${t("vulnerable", ids.length)}`,
+								command: "pyDepsHint.showVulnerabilities",
+								arguments: [packageNameWithoutExtras, pinned, ids],
+								tooltip: t(
+									"vulnerableTooltip",
+									packageNameWithoutExtras,
+									pinned,
+								),
+							}),
+						);
+					}
+				}
+			}
+
 			// "Open on PyPI" lens (added immediately as it's static)
 			const packageNameWithoutExtras = dep.packageName.split("[")[0];
 			codeLenses.push(
@@ -170,6 +206,10 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 					tooltip: `Open ${packageNameWithoutExtras} on PyPI`,
 				}),
 			);
+		}
+
+		if (config.checkVulnerabilities) {
+			this.scanVulnerabilitiesAsync(dependencies);
 		}
 
 		// Re-opening a file hits the version cache without a new fetch.
@@ -334,6 +374,51 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 		return codeLens;
 	}
 
+	/**
+	 * Query OSV for every exact pin in the document, once per pin.
+	 *
+	 * One batched request covers all of them. A pin that was already sent is
+	 * not sent again, so a failed lookup does not repeat on every repaint;
+	 * `clearCache` resets that when settings change.
+	 */
+	private async scanVulnerabilitiesAsync(
+		dependencies: AnyDependency[],
+	): Promise<void> {
+		const pending = collectVulnerabilityTargets(dependencies).filter(
+			(target) => !this.scannedPins.has(target.key),
+		);
+		if (pending.length === 0) {
+			return;
+		}
+		for (const target of pending) {
+			this.scannedPins.add(target.key);
+		}
+
+		try {
+			const found = await queryVulnerabilities(
+				pending.map((target) => ({
+					packageName: target.packageName,
+					version: target.version,
+				})),
+			);
+			let changed = false;
+			for (const [key, ids] of found) {
+				if (!this.vulnerabilityCache.has(key)) {
+					changed = true;
+				}
+				this.vulnerabilityCache.set(key, ids);
+			}
+			if (changed) {
+				this._onDidChangeCodeLenses.fire();
+				this.updateStatusBar();
+			}
+		} catch (error) {
+			// The pins stay in `scannedPins`, so this is reported once rather
+			// than retried on every repaint.
+			Logger.error("Vulnerability scan failed:", error);
+		}
+	}
+
 	private async fetchVersionsAsync(
 		packageName: string,
 		config: ReturnType<typeof getConfig>,
@@ -398,11 +483,24 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 		const config = getConfig();
 		let updatesAvailable = 0;
 		let totalChecked = 0;
+		let vulnerablePins = 0;
 
 		// Only dependencies still in an open document. Historical files
 		// that were closed must not keep adding to the total.
 		for (const cached of this.dependencyCache.values()) {
 			for (const dep of cached.dependencies) {
+				if (config.checkVulnerabilities) {
+					const pinned = pinnedVersion(dep.versionSpecifier);
+					if (pinned) {
+						const ids = this.vulnerabilityCache.get(
+							osvKey(dep.packageName.split("[")[0], pinned),
+						);
+						if (ids && ids.length > 0) {
+							vulnerablePins++;
+						}
+					}
+				}
+
 				const key = this.cacheKey(
 					dep.packageName.split("[")[0],
 					config.registryUrl,
@@ -426,6 +524,6 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 			}
 		}
 
-		this.statusBar.updateStatus(updatesAvailable, totalChecked);
+		this.statusBar.updateStatus(updatesAvailable, totalChecked, vulnerablePins);
 	}
 }

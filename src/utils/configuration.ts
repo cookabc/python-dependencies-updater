@@ -22,6 +22,7 @@ export function getConfig(): ExtensionConfig {
 		cacheTTLMinutes: config.get<number>("cacheTTLMinutes", 60),
 		supportPyProject: config.get<boolean>("supportPyProject", true),
 		registryUrl: validateRegistryUrl(registryUrl),
+		checkVulnerabilities: config.get<boolean>("checkVulnerabilities", true),
 	};
 }
 

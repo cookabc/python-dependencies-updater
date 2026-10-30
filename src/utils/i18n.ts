@@ -27,10 +27,17 @@ interface Messages {
 	majorUpdateDetected: string;
 	continueQuestion: string;
 	majorSkipped: string;
+	vulnerable: string;
+	vulnerableTooltip: string;
+	statusBarVulnerable: string;
 }
 
 const messages: Record<string, Messages> = {
 	en: {
+		vulnerable: "{0} known vulnerability(ies)",
+		vulnerableTooltip:
+			"Known vulnerabilities in {0} {1}. Click to open the report.",
+		statusBarVulnerable: "{0} vulnerable",
 		updateTo: "Update to",
 		upToDate: "Up to date",
 		latest: "latest",
@@ -57,6 +64,9 @@ const messages: Record<string, Messages> = {
 			"{0} of {1} packages have updates available. Click to update all.",
 	},
 	"zh-cn": {
+		vulnerable: "{0} 个已知漏洞",
+		vulnerableTooltip: "{0} {1} 存在已知漏洞，点击查看报告。",
+		statusBarVulnerable: "{0} 个有漏洞",
 		updateTo: "更新到",
 		upToDate: "已是最新",
 		latest: "最新",
@@ -81,6 +91,9 @@ const messages: Record<string, Messages> = {
 		statusBarTooltipUpdates: "{1} 个包中有 {0} 个有更新可用。点击全部更新。",
 	},
 	"zh-tw": {
+		vulnerable: "{0} 個已知漏洞",
+		vulnerableTooltip: "{0} {1} 存在已知漏洞，點擊查看報告。",
+		statusBarVulnerable: "{0} 個有漏洞",
 		updateTo: "更新到",
 		upToDate: "已是最新",
 		latest: "最新",
@@ -105,6 +118,10 @@ const messages: Record<string, Messages> = {
 		statusBarTooltipUpdates: "{1} 個套件中有 {0} 個有更新可用。點擊全部更新。",
 	},
 	ja: {
+		vulnerable: "既知の脆弱性 {0} 件",
+		vulnerableTooltip:
+			"{0} {1} に既知の脆弱性があります。クリックでレポートを開きます。",
+		statusBarVulnerable: "脆弱性 {0} 件",
 		updateTo: "アップデート",
 		upToDate: "最新です",
 		latest: "最新",
@@ -132,6 +149,10 @@ const messages: Record<string, Messages> = {
 			"{1} パッケージ中 {0} 件の更新があります。クリックして全て更新。",
 	},
 	ko: {
+		vulnerable: "알려진 취약점 {0}개",
+		vulnerableTooltip:
+			"{0} {1}에 알려진 취약점이 있습니다. 클릭하면 보고서를 엽니다.",
+		statusBarVulnerable: "취약점 {0}개",
 		updateTo: "업데이트",
 		upToDate: "최신 버전",
 		latest: "최신",
@@ -159,6 +180,10 @@ const messages: Record<string, Messages> = {
 			"{1}개 패키지 중 {0}개 업데이트 가능. 클릭하여 모두 업데이트.",
 	},
 	fr: {
+		vulnerable: "{0} vulnérabilité(s) connue(s)",
+		vulnerableTooltip:
+			"Vulnérabilités connues dans {0} {1}. Cliquez pour ouvrir le rapport.",
+		statusBarVulnerable: "{0} vulnérable(s)",
 		updateTo: "Mettre à jour vers",
 		upToDate: "À jour",
 		latest: "dernière",
@@ -186,6 +211,10 @@ const messages: Record<string, Messages> = {
 			"{0} sur {1} paquets ont des mises à jour disponibles. Cliquez pour tout mettre à jour.",
 	},
 	de: {
+		vulnerable: "{0} bekannte Schwachstelle(n)",
+		vulnerableTooltip:
+			"Bekannte Schwachstellen in {0} {1}. Klicken, um den Bericht zu öffnen.",
+		statusBarVulnerable: "{0} anfällig",
 		updateTo: "Aktualisieren auf",
 		upToDate: "Aktuell",
 		latest: "neueste",
@@ -213,6 +242,10 @@ const messages: Record<string, Messages> = {
 			"{0} von {1} Paketen haben Updates. Klicken Sie, um alle zu aktualisieren.",
 	},
 	it: {
+		vulnerable: "{0} vulnerabilità note",
+		vulnerableTooltip:
+			"Vulnerabilità note in {0} {1}. Clicca per aprire il report.",
+		statusBarVulnerable: "{0} vulnerabile",
 		updateTo: "Aggiorna a",
 		upToDate: "Aggiornato",
 		latest: "ultima",
@@ -239,6 +272,10 @@ const messages: Record<string, Messages> = {
 			"{0} di {1} pacchetti hanno aggiornamenti disponibili. Clicca per aggiornare tutto.",
 	},
 	es: {
+		vulnerable: "{0} vulnerabilidad(es) conocida(s)",
+		vulnerableTooltip:
+			"Vulnerabilidades conocidas en {0} {1}. Haz clic para abrir el informe.",
+		statusBarVulnerable: "{0} vulnerable",
 		updateTo: "Actualizar a",
 		upToDate: "Actualizado",
 		latest: "última",
@@ -267,6 +304,10 @@ const messages: Record<string, Messages> = {
 			"{0} de {1} paquetes tienen actualizaciones disponibles. Haga clic para actualizar todo.",
 	},
 	ru: {
+		vulnerable: "Известных уязвимостей: {0}",
+		vulnerableTooltip:
+			"В {0} {1} есть известные уязвимости. Нажмите, чтобы открыть отчёт.",
+		statusBarVulnerable: "Уязвимых: {0}",
 		updateTo: "Обновить до",
 		upToDate: "Актуально",
 		latest: "последняя",

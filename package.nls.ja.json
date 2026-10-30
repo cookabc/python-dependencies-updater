@@ -3,6 +3,7 @@
   "command.updateAllVersions": "すべてのパッケージを最新版に更新",
   "command.showUpToDate": "パッケージの最新状態を表示",
   "command.openOnPyPI": "PyPI で開く",
+  "command.showVulnerabilities": "既知の脆弱性を表示",
   "colors.upToDate": "最新パッケージの色",
   "colors.updateAvailable": "更新可能なパッケージの色",
   "config.title": "Python 依存関係ヒント",
@@ -10,5 +11,6 @@
   "config.showPrerelease.description": "バージョンヒントにプレリリース版を含める",
   "config.cacheTTLMinutes.description": "PyPI バージョンデータのキャッシュ TTL (分)",
   "config.supportPyProject.description": "pyproject.toml サポートの有効/無効を切り替え",
-  "config.registryUrl.description": "PyPI レジストリ URL（Artifactory や devpi などのプライベートミラー用）"
+  "config.registryUrl.description": "PyPI レジストリ URL（Artifactory や devpi などのプライベートミラー用）",
+  "config.checkVulnerabilities.description": "固定バージョン（==）の既知の脆弱性を OSV.dev で確認する"
 }

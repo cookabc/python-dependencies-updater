@@ -79,6 +79,10 @@
             {
                 "command": "pyDepsHint.openOnPyPI",
                 "title": "%command.openOnPyPI%"
+            },
+            {
+                "command": "pyDepsHint.showVulnerabilities",
+                "title": "%command.showVulnerabilities%"
             }
         ],
         "configuration": {
@@ -108,6 +112,11 @@
                     "type": "string",
                     "default": "https://pypi.org",
                     "description": "%config.registryUrl.description%"
+                },
+                "pyDepsHint.checkVulnerabilities": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "%config.checkVulnerabilities.description%"
                 }
             }
         },
