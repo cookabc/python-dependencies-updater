@@ -138,6 +138,28 @@ export async function fetchVersions(
 			data: {
 				packageName,
 				versions,
+				releases: Object.fromEntries(
+					Object.entries(data.releases).map(([version, files]) => [
+						version,
+						files
+							.filter(
+								(file): file is Record<string, unknown> =>
+									!!file &&
+									typeof file === "object" &&
+									(file as { yanked?: boolean }).yanked !== true,
+							)
+							.map((file) => ({
+								requiresPython:
+									typeof file.requires_python === "string"
+										? file.requires_python
+										: undefined,
+								publishedAt:
+									typeof file.upload_time_iso_8601 === "string"
+										? file.upload_time_iso_8601
+										: undefined,
+							})),
+					]),
+				),
 				summary: data.info?.summary || undefined,
 				fetchedAt: Date.now(),
 			},

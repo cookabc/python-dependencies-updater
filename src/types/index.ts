@@ -27,6 +27,10 @@ export interface PyProjectDependency {
 export interface PackageVersions {
 	packageName: string;
 	versions: string[];
+	releases?: Record<
+		string,
+		{ requiresPython?: string; publishedAt?: string }[]
+	>;
 	summary?: string;
 	fetchedAt: number;
 }
@@ -76,4 +80,9 @@ export interface ExtensionConfig {
 	registryUrl: string;
 	/** Check exact pins against OSV.dev for known vulnerabilities. */
 	checkVulnerabilities: boolean;
+	targetPythonVersion?: string;
+	strategy?: "latest" | "compatible" | "patch";
+	minimumReleaseAgeDays?: number;
+	ignoredVersions?: Record<string, string[]>;
+	deferredPackages?: Record<string, string>;
 }

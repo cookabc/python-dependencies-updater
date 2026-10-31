@@ -28,7 +28,7 @@ export interface PlannedEdit {
 
 function dependencyKey(dep: AnyDependency): string {
 	const extra = "extra" in dep ? (dep.extra ?? "") : "";
-	return `${dep.packageName}|${extra}`;
+	return `${dep.packageName}|${extra}|${"section" in dep ? dep.section : ""}|${dep.versionSpecifier}`;
 }
 
 /**

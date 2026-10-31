@@ -47,7 +47,8 @@ export function analyzeVersionUpdate(
 		riskLevel = "high";
 	} else if (currentMinor !== latestMinor) {
 		updateType = "minor";
-		riskLevel = "medium";
+		riskLevel = currentMajor === 0 ? "high" : "medium";
+		isBreakingChange = currentMajor === 0;
 	} else {
 		updateType = "patch";
 		riskLevel = "low";

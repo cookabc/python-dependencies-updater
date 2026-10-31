@@ -19,5 +19,5 @@ export function versionCacheKey(
 	registryUrl?: string,
 ): string {
 	const registry = (registryUrl || DEFAULT_REGISTRY).replace(/\/+$/, "");
-	return `${registry}|${normalizePackageName(packageName)}`;
+	return `metadata-v2|${registry}|${normalizePackageName(packageName)}`;
 }

@@ -23,6 +23,20 @@ export function getConfig(): ExtensionConfig {
 		supportPyProject: config.get<boolean>("supportPyProject", true),
 		registryUrl: validateRegistryUrl(registryUrl),
 		checkVulnerabilities: config.get<boolean>("checkVulnerabilities", true),
+		targetPythonVersion: config.get<string>("targetPythonVersion", ""),
+		strategy: config.get<"latest" | "compatible" | "patch">(
+			"strategy",
+			"latest",
+		),
+		minimumReleaseAgeDays: config.get<number>("minimumReleaseAgeDays", 0),
+		ignoredVersions: config.get<Record<string, string[]>>(
+			"ignoredVersions",
+			{},
+		),
+		deferredPackages: config.get<Record<string, string>>(
+			"deferredPackages",
+			{},
+		),
 	};
 }
 

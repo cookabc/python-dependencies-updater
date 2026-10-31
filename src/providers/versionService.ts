@@ -5,8 +5,9 @@
 
 import { cacheManager } from "../core/cache";
 import { versionCacheKey } from "../core/packageName";
+import { eligibleVersions } from "../core/recommendation";
 import { resolveLatest } from "../core/versionResolver";
-import type { PackageVersions, VersionInfo } from "../types";
+import type { ExtensionConfig, PackageVersions, VersionInfo } from "../types";
 import { Logger } from "../utils/logger";
 import { fetchVersions } from "./pypiClient";
 
@@ -60,6 +61,7 @@ export async function getLatestCompatible(
 	cacheTTLMinutes: number = 60,
 	registryUrl?: string,
 	token?: string,
+	options?: ExtensionConfig,
 ): Promise<VersionInfo> {
 	try {
 		const packageVersions = await getPackageVersions(
@@ -70,7 +72,9 @@ export async function getLatestCompatible(
 		);
 
 		const resolved = resolveLatest(
-			packageVersions.versions,
+			options
+				? eligibleVersions(packageVersions, specifier, options)
+				: packageVersions.versions,
 			specifier,
 			includePrerelease,
 		);
