@@ -6,18 +6,23 @@
 import * as vscode from "vscode";
 import { type BatchUpdate, planRelocatedEdits } from "./core/batchUpdate";
 import { cacheManager } from "./core/cache";
+import { pythonTarget } from "./core/recommendation";
 import { isSupportedFormat, parseDependencies } from "./core/unifiedParser";
 import { analyzeVersionUpdate } from "./core/versionAnalyzer";
 import { isCoveredBySpecifier } from "./core/versionResolver";
 import { PyDepsCodeLensProvider } from "./providers/codeLensProvider";
 import { PyDepsHoverProvider } from "./providers/hoverProvider";
-import { fetchVulnerabilityDetail } from "./providers/osvClient";
+import { fetchVulnerabilityDetail, osvKey } from "./providers/osvClient";
+import { pythonProjectAdapter } from "./providers/projectAdapter";
+import { checkedUpgradeTargets } from "./providers/upgradeGuard";
 import { getLatestCompatible } from "./providers/versionService";
+import { registerProjectTools } from "./shared/projectTools";
 import { getConfig, onConfigChange } from "./utils/configuration";
 import {
 	extractVersionNumber,
 	planLineUpdate,
 	shouldOfferVersionUpdate,
+	specifierForResolution,
 } from "./utils/dependencyUtils";
 import { t } from "./utils/i18n";
 import { Logger } from "./utils/logger";
@@ -29,6 +34,12 @@ let debounceTimer: NodeJS.Timeout | undefined;
 export function activate(context: vscode.ExtensionContext): void {
 	Logger.init("Python Dependencies");
 	Logger.log("Python Dependencies Updater is now active");
+	registerProjectTools(
+		context,
+		pythonProjectAdapter(async () =>
+			context.secrets.get("pyDepsHint.registryToken"),
+		),
+	);
 
 	// Initialize cache with persistence
 	cacheManager.setMemento(context.globalState);
@@ -46,7 +57,30 @@ export function activate(context: vscode.ExtensionContext): void {
 			packageName: string,
 			newVersion: string,
 			startColumn?: number,
+			expectedSpecifier?: string,
 		) => {
+			const matches = parseDependencies(
+				document.fileName,
+				document.getText(),
+			).filter(
+				(dep) =>
+					dep.packageName === packageName &&
+					(expectedSpecifier === undefined ||
+						dep.versionSpecifier === expectedSpecifier),
+			);
+			const target =
+				matches.find(
+					(dep) => dep.line === line && dep.startColumn === (startColumn ?? 0),
+				) ?? (matches.length === 1 ? matches[0] : undefined);
+			if (!target) {
+				void vscode.window.showWarningMessage(
+					"The dependency changed since this hint was shown. Refresh the hints and retry.",
+				);
+				return;
+			}
+			line = target.line;
+			startColumn = target.startColumn;
+			const versionBeforeCheck = document.version;
 			const lineText = document.lineAt(line).text;
 			const isTOML = document.languageId === "toml";
 
@@ -80,6 +114,24 @@ export function activate(context: vscode.ExtensionContext): void {
 				}
 			}
 
+			try {
+				const accepted = await checkedUpgradeTargets(
+					[{ packageName, version: newVersion }],
+					getConfig().checkVulnerabilities,
+				);
+				if (!accepted.has(osvKey(packageName, newVersion))) return;
+			} catch (error) {
+				void vscode.window.showErrorMessage(
+					`Target vulnerability check failed. Retry the update. ${String(error)}`,
+				);
+				return;
+			}
+			if (document.version !== versionBeforeCheck) {
+				void vscode.window.showWarningMessage(
+					"The dependency file changed during the checks. Retry the update.",
+				);
+				return;
+			}
 			const range = new vscode.Range(
 				line,
 				planned.match.startIndex,
@@ -89,7 +141,12 @@ export function activate(context: vscode.ExtensionContext): void {
 
 			const edit = new vscode.WorkspaceEdit();
 			edit.replace(document.uri, range, planned.replacement);
-			await vscode.workspace.applyEdit(edit);
+			if (!(await vscode.workspace.applyEdit(edit))) {
+				void vscode.window.showErrorMessage(
+					"The dependency edit was not applied. Retry after reviewing the file.",
+				);
+				return;
+			}
 
 			vscode.window.showInformationMessage(
 				`${t("updated")} ${packageName} ${t("updateTo")} ${newVersion}`,
@@ -112,12 +169,20 @@ export function activate(context: vscode.ExtensionContext): void {
 			const document = editor.document;
 			const documentVersionAtStart = document.version;
 			const deps = parseDependencies(document.fileName, document.getText());
-			const config = getConfig();
+			const config = {
+				...getConfig(),
+				targetPythonVersion: pythonTarget(
+					document.fileName,
+					getConfig().targetPythonVersion,
+				),
+			};
+			const credential = await context.secrets.get("pyDepsHint.registryToken");
 
 			const pendingSafe: BatchUpdate[] = [];
 			const riskyUpdates: Array<BatchUpdate & { currentVersion: string }> = [];
 
-			// First pass: identify safe and risky updates with progress
+			let cancelled = false;
+			// First pass: classify version changes with progress
 			await vscode.window.withProgress(
 				{
 					location: vscode.ProgressLocation.Notification,
@@ -134,10 +199,12 @@ export function activate(context: vscode.ExtensionContext): void {
 							try {
 								const versionInfo = await getLatestCompatible(
 									dep.packageName,
-									dep.versionSpecifier,
+									specifierForResolution(dep),
 									config.showPrerelease,
 									config.cacheTTLMinutes,
 									config.registryUrl,
+									credential,
+									config,
 								);
 								completed++;
 								progress.report({
@@ -157,6 +224,7 @@ export function activate(context: vscode.ExtensionContext): void {
 
 					for (const result of results) {
 						if (progressToken.isCancellationRequested) {
+							cancelled = true;
 							break;
 						}
 						if (!result?.versionInfo.latestCompatible) {
@@ -193,6 +261,27 @@ export function activate(context: vscode.ExtensionContext): void {
 				},
 			);
 
+			if (cancelled) return;
+			try {
+				const accepted = await checkedUpgradeTargets(
+					[...pendingSafe, ...riskyUpdates].map((u) => ({
+						packageName: u.dep.packageName,
+						version: u.newVersion,
+					})),
+					config.checkVulnerabilities,
+				);
+				for (const list of [pendingSafe, riskyUpdates])
+					for (let i = list.length - 1; i >= 0; i--)
+						if (
+							!accepted.has(osvKey(list[i].dep.packageName, list[i].newVersion))
+						)
+							list.splice(i, 1);
+			} catch (error) {
+				void vscode.window.showErrorMessage(
+					`Target vulnerability check failed. Retry the update. ${String(error)}`,
+				);
+				return;
+			}
 			// Handle risky updates with confirmation. Safe edits are not
 			// applied until after this dialog, so a change made while it is
 			// open is included in the same re-parse.
@@ -201,7 +290,7 @@ export function activate(context: vscode.ExtensionContext): void {
 				const riskyList = riskyUpdates
 					.map(
 						(u) =>
-							`• ${u.dep.packageName}: ${u.currentVersion} → ${u.newVersion} (Major)`,
+							`• ${u.dep.packageName}: ${u.currentVersion} → ${u.newVersion} (review required)`,
 					)
 					.join("\n");
 
@@ -257,7 +346,12 @@ export function activate(context: vscode.ExtensionContext): void {
 			const totalUpdates = safeUpdates + confirmedRiskyUpdates;
 
 			if (totalUpdates > 0) {
-				await vscode.workspace.applyEdit(edit);
+				if (!(await vscode.workspace.applyEdit(edit))) {
+					void vscode.window.showErrorMessage(
+						"The dependency edit was not applied. Retry after reviewing the file.",
+					);
+					return;
+				}
 
 				let message = `${t("updated")} ${totalUpdates} ${t("packages")}`;
 				if (riskyUpdates.length > 0 && confirmedRiskyUpdates === 0) {
@@ -333,6 +427,11 @@ export function activate(context: vscode.ExtensionContext): void {
 	];
 
 	const codeLensProvider = new PyDepsCodeLensProvider(statusBar);
+	context.subscriptions.push(
+		vscode.commands.registerCommand("pyDepsHint.retryVulnerabilityScan", () =>
+			codeLensProvider.retryVulnerabilityScan(),
+		),
+	);
 	const codeLensDisposable = vscode.languages.registerCodeLensProvider(
 		selector,
 		codeLensProvider,
@@ -385,7 +484,9 @@ export function activate(context: vscode.ExtensionContext): void {
 	);
 
 	// Register Hover Provider for package descriptions
-	const hoverProvider = new PyDepsHoverProvider();
+	const hoverProvider = new PyDepsHoverProvider(async () =>
+		context.secrets.get("pyDepsHint.registryToken"),
+	);
 	const hoverDisposable = vscode.languages.registerHoverProvider(
 		selector,
 		hoverProvider,

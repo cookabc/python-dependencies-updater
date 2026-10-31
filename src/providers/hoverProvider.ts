@@ -4,6 +4,7 @@
  */
 
 import * as vscode from "vscode";
+import { pythonTarget } from "../core/recommendation";
 import { parseDependencies } from "../core/unifiedParser";
 import { getConfig } from "../utils/configuration";
 import { specifierForResolution } from "../utils/dependencyUtils";
@@ -12,6 +13,9 @@ import { Logger } from "../utils/logger";
 import { getLatestCompatible } from "./versionService";
 
 export class PyDepsHoverProvider implements vscode.HoverProvider {
+	constructor(
+		private readonly registryToken?: () => Promise<string | undefined>,
+	) {}
 	async provideHover(
 		document: vscode.TextDocument,
 		position: vscode.Position,
@@ -55,6 +59,14 @@ export class PyDepsHoverProvider implements vscode.HoverProvider {
 				config.showPrerelease,
 				config.cacheTTLMinutes,
 				config.registryUrl,
+				await this.registryToken?.(),
+				{
+					...config,
+					targetPythonVersion: pythonTarget(
+						document.fileName,
+						config.targetPythonVersion,
+					),
+				},
 			);
 
 			if (token.isCancellationRequested) {

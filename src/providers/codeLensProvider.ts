@@ -5,6 +5,7 @@
 
 import * as vscode from "vscode";
 import { versionCacheKey } from "../core/packageName";
+import { eligibleVersions, pythonTarget } from "../core/recommendation";
 import { type AnyDependency, parseDependencies } from "../core/unifiedParser";
 import { analyzeVersionUpdate } from "../core/versionAnalyzer";
 import { isCoveredBySpecifier, resolveLatest } from "../core/versionResolver";
@@ -68,6 +69,12 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 	private vulnerabilityCache: Map<string, string[]> = new Map();
 	// Pins already sent to OSV, so a failed lookup is not retried on every paint
 	private scannedPins: Set<string> = new Set();
+	private scanFailed = false;
+	public retryVulnerabilityScan(): void {
+		this.scanFailed = false;
+		this.scannedPins.clear();
+		this.refresh();
+	}
 	// Track pending fetches to avoid duplicate requests
 	private pendingFetches: Set<string> = new Set();
 	// Optional status bar for update counts
@@ -134,6 +141,7 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 	}
 
 	public clearCache(): void {
+		this.scanFailed = false;
 		this.versionCache.clear();
 		this.dependencyCache.clear();
 		this.vulnerabilityCache.clear();
@@ -271,6 +279,14 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 		if (this.hasResolvedVersion(dependencies, config.registryUrl)) {
 			this.updateStatusBar();
 		}
+		if (this.scanFailed && config.checkVulnerabilities)
+			codeLenses.push(
+				new vscode.CodeLens(new vscode.Range(0, 0, 0, 0), {
+					title: "$(shield) Vulnerability check failed — retry",
+					command: "pyDepsHint.retryVulnerabilityScan",
+					tooltip: "Vulnerability status is unknown. Click to retry the check.",
+				}),
+			);
 		return codeLenses;
 	}
 
@@ -292,9 +308,15 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 		dep: AnyDependency,
 		raw: PackageVersions,
 		showPrerelease: boolean,
+		fileName?: string,
 	): string | null {
 		const resolved = resolveLatest(
-			raw.versions,
+			eligibleVersions(raw, specifierForResolution(dep), {
+				...getConfig(),
+				targetPythonVersion: fileName
+					? pythonTarget(fileName, getConfig().targetPythonVersion)
+					: getConfig().targetPythonVersion,
+			}),
 			specifierForResolution(dep),
 			showPrerelease,
 		);
@@ -367,6 +389,7 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 				dep,
 				raw,
 				config.showPrerelease,
+				document.fileName,
 			);
 			const currentVersion = extractVersionNumber(dep.versionSpecifier);
 			const lensKind = classifyVersionLens(dep.versionSpecifier, latestVersion);
@@ -402,7 +425,10 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 
 				if (analysis.riskLevel === "high") {
 					icon = "$(warning)";
-					riskText = " ⚠️ Major";
+					riskText =
+						analysis.updateType === "major"
+							? " Major"
+							: " 0.x — review required";
 				} else if (analysis.riskLevel === "medium") {
 					icon = "$(info)";
 					riskText = " Minor";
@@ -417,8 +443,9 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 						dep.packageName,
 						latestVersion,
 						dep.startColumn,
+						dep.versionSpecifier,
 					],
-					tooltip: `Click to update ${dep.packageName} from ${currentVersion} to ${latestVersion}\nUpdate type: ${analysis.updateType}\nRisk level: ${analysis.riskLevel}`,
+					tooltip: `Click to update ${dep.packageName} from ${currentVersion} to ${latestVersion}\nUpdate type: ${analysis.updateType}\nReview level: ${analysis.riskLevel} (version heuristic only; tests have not been run)`,
 				};
 			}
 		}
@@ -468,6 +495,8 @@ export class PyDepsCodeLensProvider implements vscode.CodeLensProvider {
 			// The pins stay in `scannedPins`, so this is reported once rather
 			// than retried on every repaint.
 			Logger.error("Vulnerability scan failed:", error);
+			this.scanFailed = true;
+			this.refresh();
 		}
 	}
 

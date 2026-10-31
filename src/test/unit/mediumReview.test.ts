@@ -146,8 +146,12 @@ describe("CodeLens cache, status bar, and debug logging", () => {
 		const loaded = new Promise<void>((resolve, reject) => {
 			const timer = setTimeout(() => reject(new Error("timed out")), 2000);
 			provider.onDidChangeCodeLenses(() => {
-				clearTimeout(timer);
-				resolve();
+				void provider.resolveCodeLens(firstLens, token).then((lens) => {
+					if (lens.command?.title.includes("2.0.0")) {
+						clearTimeout(timer);
+						resolve();
+					}
+				});
 			});
 		});
 		await provider.resolveCodeLens(firstLens, token);

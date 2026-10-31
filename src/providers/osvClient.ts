@@ -6,6 +6,7 @@
  * vulnerabilities for a version the user may not run.
  */
 
+import { normalizePackageName } from "../core/packageName";
 import { Logger } from "../utils/logger";
 
 const DEFAULT_OSV_BASE = "https://api.osv.dev";
@@ -36,7 +37,7 @@ export interface OsvVulnerability {
 
 /** Stable key for matching a result back to the dependency it came from. */
 export function osvKey(packageName: string, version: string): string {
-	return `${packageName.toLowerCase()}@${version}`;
+	return `${normalizePackageName(packageName)}@${version}`;
 }
 
 interface BatchResponse {
@@ -92,7 +93,10 @@ export async function queryVulnerabilities(
 		try {
 			data = await postJson<BatchResponse>(`${osvBase()}/v1/querybatch`, {
 				queries: chunk.map((query) => ({
-					package: { name: query.packageName, ecosystem: "PyPI" },
+					package: {
+						name: normalizePackageName(query.packageName),
+						ecosystem: "PyPI",
+					},
 					version: query.version,
 				})),
 			});
@@ -103,7 +107,18 @@ export async function queryVulnerabilities(
 			throw error;
 		}
 
-		const results = data.results ?? [];
+		const results = data.results;
+		if (
+			!Array.isArray(results) ||
+			results.length !== chunk.length ||
+			results.some(
+				(result) => !result || typeof result !== "object" || "error" in result,
+			)
+		) {
+			throw new Error(
+				"OSV returned an incomplete response. Retry the vulnerability check.",
+			);
+		}
 		for (let j = 0; j < chunk.length; j++) {
 			const vulns = results[j]?.vulns;
 			if (!vulns || vulns.length === 0) {

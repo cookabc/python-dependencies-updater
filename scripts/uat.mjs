@@ -25,6 +25,7 @@ fs.writeFileSync(path.join(fixture, "requirements.txt"), 'flask==2.0.0\nrequests
 
 const release = (yanked = false) => [{ yanked }];
 const pypi = {
+ dangerpkg: {summary:"Vulnerable destination",releases:{"1.0.0":release(),"1.1.0":release()}},
 	flask: { summary: "Flask web framework", releases: { "2.0.0": release(), "2.1.0": release() } },
 	requests: { summary: "Python HTTP for Humans", releases: { "2.28.0": release(), "2.31.0": release() } },
 	numpy: { summary: "NumPy arrays", releases: { "1.24.0": release(), "1.26.0": release() } },
@@ -40,6 +41,7 @@ const pypi = {
  * `requests@2.28.0` is not, so the suite can check both directions.
  */
 const osvAdvisories = {
+ "dangerpkg@1.1.0":["GHSA-uat-destination"],
 	"flask@2.0.0": ["GHSA-uat-flask-1", "GHSA-uat-flask-2"],
 };
 

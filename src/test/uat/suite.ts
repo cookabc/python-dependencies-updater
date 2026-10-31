@@ -313,5 +313,55 @@ export async function run(): Promise<void> {
 		)}`,
 	);
 
+	// ---------- an exact vulnerable destination is blocked before editing ----------
+	const targetDir = path.join(FIXTURE, "destination");
+	fs.mkdirSync(targetDir, { recursive: true });
+	fs.writeFileSync(
+		path.join(targetDir, "requirements.txt"),
+		"dangerpkg==1.0.0\n",
+	);
+	const targetDoc = await vscode.workspace.openTextDocument(
+		path.join(targetDir, "requirements.txt"),
+	);
+	const targetLenses = await waitForLenses(targetDoc, (ls) =>
+		ls.some((l) => l.command?.command === "pyDepsHint.updateVersion"),
+	);
+	const targetLens = versionLens(targetLenses, "dangerpkg");
+	const targetCommand = targetLens.command;
+	assert.ok(targetCommand?.arguments);
+	await vscode.commands.executeCommand(
+		targetCommand.command,
+		...targetCommand.arguments,
+	);
+	assert.strictEqual(
+		targetDoc.getText(),
+		"dangerpkg==1.0.0\n",
+		"A destination with known vulnerabilities must not be written",
+	);
+
+	// ---------- the native report uses lockfile versions and dependency paths ----------
+	fs.writeFileSync(
+		path.join(FIXTURE, "uv.lock"),
+		`version=1
+[[package]]
+name="flask"
+version="2.0.0"
+source={registry="https://pypi.org/simple"}
+dependencies=[{name="dangerpkg"}]
+[[package]]
+name="dangerpkg"
+version="1.1.0"
+source={registry="https://pypi.org/simple"}
+`,
+	);
+	await vscode.window.showTextDocument(reqDoc);
+	await vscode.commands.executeCommand("pyDepsHint.dependencyReport");
+	const report = vscode.window.activeTextEditor?.document.getText() ?? "";
+	assert.match(report, /Dependency report/);
+	assert.match(report, /GHSA-uat-destination/);
+	assert.match(report, /flask@2\.0\.0 → dangerpkg@1\.1\.0/);
+	const commands = await vscode.commands.getCommands();
+	assert.ok(commands.includes("pyDepsHint.previewAndValidate"));
+
 	console.log("UAT suite finished OK");
 }
