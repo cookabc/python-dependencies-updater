@@ -39,30 +39,32 @@ jobs:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
         run: |
           if [ -n "$VSCE_PAT" ]; then
-            npx @vscode/vsce publish -p "$VSCE_PAT"
+            npx @vscode/vsce publish --packagePath *.vsix --skip-duplicate -p "$VSCE_PAT"
             exit 0
           fi
           # Trusted publishing (OIDC): needs a trusted publishing policy for
           # this repo + workflow on the Marketplace publisher page
-          if npx @vscode/vsce publish --oidc; then
+          if npx @vscode/vsce publish --packagePath *.vsix --skip-duplicate --oidc; then
             exit 0
           fi
-          echo "::warning::Marketplace publish skipped - register a trusted publishing policy for this repo/workflow on the Marketplace, or set the VSCE_PAT secret"
+          echo "::error::Marketplace publication failed. Check the trusted publishing policy or VSCE_PAT secret."
+          exit 1
 
       - name: Publish to OpenVSX
         env:
           OVSX_PAT: ${{ secrets.OVSX_PAT }}
         run: |
           if [ -n "$OVSX_PAT" ]; then
-            npx ovsx publish -p "$OVSX_PAT"
+            npx ovsx publish --packagePath *.vsix --skip-duplicate -p "$OVSX_PAT"
             exit 0
           fi
           # Trusted publishing (OIDC): needs this repo + workflow registered
           # under the namespace's trusted publishers on OpenVSX
-          if npx ovsx publish --trusted-publishing; then
+          if npx ovsx publish --packagePath *.vsix --skip-duplicate --trusted-publishing; then
             exit 0
           fi
-          echo "::warning::OpenVSX publish skipped - register this repo/workflow as a trusted publisher on OpenVSX, or set the OVSX_PAT secret"
+          echo "::error::OpenVSX publication failed. Check the trusted publisher registration or OVSX_PAT secret."
+          exit 1
 
       - name: Create GitHub Release with the VSIX
         if: startsWith(github.ref, 'refs/tags/')

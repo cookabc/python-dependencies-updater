@@ -13,5 +13,13 @@
   "config.cacheTTLMinutes.description": "PyPI 版本資料的快取 TTL（分鐘）",
   "config.supportPyProject.description": "啟用或停用 pyproject.toml 支援",
   "config.registryUrl.description": "PyPI 登錄表 URL（用於 Artifactory 或 devpi 等私有鏡像）",
-  "config.checkVulnerabilities.description": "對照 OSV.dev 檢查精確版本（==）的已知漏洞"
+  "config.checkVulnerabilities.description": "對照 OSV.dev 檢查精確版本（==）的已知漏洞",
+  "command.dependencyReport": "顯示相依套件報告",
+  "command.previewAndValidate": "預覽並驗證相依套件更新",
+  "config.strategy.description": "升級目標：最新版本、同一維護線（compatible，0.x 限制在目前次要版本內），或同一主版本和次要版本（patch）。策略不保證相容性。",
+  "config.minimumReleaseAgeDays.description": "發佈冷靜期（天）。0 表示關閉。啟用後排除發佈時間未知的版本。漏洞修復也遵循此策略，緊急修復時可手動縮短。",
+  "config.ignoredVersions.description": "依套件名稱忽略指定的精確版本，例如 {\"example\": [\"2.0.0\"]}。",
+  "config.deferredPackages.description": "依套件名稱延後至 ISO 8601 時間，例如 {\"example\": \"2027-01-01T00:00:00Z\"}。",
+  "config.targetPythonVersion.description": "目標 Python 的具體版本。留空時讀取 .python-version；未找到具體版本時，相容性為未知。",
+  "config.validationCommands.description": "在暫存副本中執行的專案檢查，格式為 executable/args 物件，不經過 shell。僅在受信任工作區主動選擇預覽並驗證時執行。"
 }

@@ -10,6 +10,8 @@ Inline version hints and one-click upgrades for `requirements.txt` and
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/cookabc/python-dependencies-updater/actions/workflows/ci.yml/badge.svg)](https://github.com/cookabc/python-dependencies-updater/actions/workflows/ci.yml)
 
+Upgrade policies, lockfile reports and isolated validation: [guide](docs/UPGRADES.md).
+
 ## Features
 
 - **Both formats** — reads `requirements.txt` and `pyproject.toml`.
@@ -17,12 +19,12 @@ Inline version hints and one-click upgrades for `requirements.txt` and
   `[project.optional-dependencies]`, `[dependency-groups]` and
   `[tool.poetry.dependencies]` (including dev and group tables) all work.
 - **Version detection** — each dependency shows its real status against PyPI.
-- **Risk analysis** — patch and minor updates are marked safe; major updates are flagged separately.
+- **Version-change review** — major and 0.x minor changes require confirmation; other version changes are heuristics, not proof of compatibility.
 - **One-click updates** — click a version hint to move that dependency to the latest allowed version.
 - **Constraint-aware suggestions** — the dependency's own specifier is respected (`==`, `>=`, `~=`, `==1.2.*` wildcards, environment markers, Poetry `^`/`~`).
 - **Vulnerability check** — exact pins are checked against OSV.dev and flagged in place.
 - **Hover details** — hover a dependency for its PyPI summary and latest release.
-- **Batch updates** — the status bar and command palette upgrade every safe package at once, with a confirmation step for majors.
+- **Batch updates** — review high-risk version changes separately; every destination is checked for known vulnerabilities when enabled.
 - **Smart caching** — PyPI responses are cached, so editing stays off the network.
 - **Ten locales** — the interface is localized through `package.nls.*.json`.
 
@@ -41,7 +43,7 @@ Or search for "Python Dependencies Updater" in the Extensions view (Ctrl+Shift+X
 1. Open any `requirements.txt`.
 2. Each dependency shows its status:
    - `✓ Up to date` — already at the latest version.
-   - `↗ Update to X.X.X` — a safe update is available.
+   - `↗ Update to X.X.X` — a version update is available.
    - `⚠️ Update to X.X.X Major` — a major version update.
 
 ### pyproject.toml
@@ -75,8 +77,8 @@ vulnerabilities the user may never run into. Disable the whole check with
 ### Batch updates
 
 Run "Update All Packages" from the command palette, or click the status bar
-notification. Safe updates and major updates are separated, so the majors need
-an explicit confirmation.
+notification. Major and 0.x minor changes require explicit confirmation.
+Version classification does not replace project checks.
 
 ## Configuration
 

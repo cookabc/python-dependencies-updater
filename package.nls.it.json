@@ -13,5 +13,13 @@
   "config.cacheTTLMinutes.description": "TTL cache per i dati delle versioni PyPI (minuti)",
   "config.supportPyProject.description": "Abilita o disabilita il supporto pyproject.toml",
   "config.registryUrl.description": "URL del registro PyPI (per mirror privati come Artifactory o devpi)",
-  "config.checkVulnerabilities.description": "Verifica le versioni esatte (==) su OSV.dev per vulnerabilità note"
+  "config.checkVulnerabilities.description": "Verifica le versioni esatte (==) su OSV.dev per vulnerabilità note",
+  "command.dependencyReport": "Show Dependency Report",
+  "command.previewAndValidate": "Preview and Validate Dependency Updates",
+  "config.strategy.description": "Update target: latest release, same maintenance line (compatible; 0.x stays within its minor), or same major.minor (patch). This is not a compatibility guarantee.",
+  "config.minimumReleaseAgeDays.description": "Minimum release age in days. 0 disables the delay. When enabled, releases without timestamps are excluded. Known-vulnerability fixes follow the same policy; reduce the delay explicitly when needed.",
+  "config.ignoredVersions.description": "Exact versions to ignore by package name, e.g. {\"example\": [\"2.0.0\"]}.",
+  "config.deferredPackages.description": "Defer packages until an ISO 8601 date/time, e.g. {\"example\": \"2027-01-01T00:00:00Z\"}.",
+  "config.targetPythonVersion.description": "Concrete target Python version. When empty, read .python-version. If no concrete version is available, runtime compatibility is unknown.",
+  "config.validationCommands.description": "Project checks to run in an isolated copy, as executable/args objects (no shell). Empty means tests are not run. Commands execute only when you choose Preview and Validate in a trusted workspace."
 }

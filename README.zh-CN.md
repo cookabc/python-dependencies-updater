@@ -9,6 +9,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![CI](https://github.com/cookabc/python-dependencies-updater/actions/workflows/ci.yml/badge.svg)](https://github.com/cookabc/python-dependencies-updater/actions/workflows/ci.yml)
 
+升级策略、锁文件报告和临时副本验证见[使用说明](docs/UPGRADES.zh-CN.md)。
+
 ## 功能
 
 - **两种格式** — 读取 `requirements.txt` 与 `pyproject.toml`。
@@ -16,12 +18,12 @@
   `[project.optional-dependencies]`、`[dependency-groups]` 与
   `[tool.poetry.dependencies]`（含 dev 与 group 表）都支持。
 - **版本检测** — 每个依赖都按 PyPI 实际状态显示版本情况。
-- **风险分析** — 补丁与次要版本标为安全，主要版本单独标出。
+- **版本变化提示** — 主版本和 `0.x` 次要版本变化需要确认；版本号分类不保证兼容性。
 - **一键更新** — 点版本提示即可把该依赖升到当前允许的最新版本。
 - **尊重原有约束** — 沿用依赖自己的写法（`==`、`>=`、`~=`、`==1.2.*` 通配、环境标记、Poetry 的 `^`/`~`）。
 - **漏洞检查** — 精确版本会对照 OSV.dev 检查并在原地标出。
 - **悬停详情** — 悬停依赖可看 PyPI 摘要与最新发布版本。
-- **批量更新** — 状态栏与命令面板可一次升级全部安全包，主要版本另需确认。
+- **批量更新** — 状态栏与命令面板可一次升级全部无需高风险确认的包，主版本和 `0.x` 次要版本变化另需确认。
 - **智能缓存** — PyPI 响应进缓存，编辑时不走网络。
 - **十种语言** — 界面文案通过 `package.nls.*.json` 本地化。
 
@@ -40,7 +42,7 @@ code --install-extension cookabc.python-dependencies-updater
 1. 打开任意 `requirements.txt`。
 2. 每个依赖显示自己的状态：
    - `✓ Up to date` — 已经是最新版本。
-   - `↗ Update to X.X.X` — 有安全更新可用。
+   - `↗ Update to X.X.X` — 有无需高风险确认的更新可用。
    - `⚠️ Update to X.X.X Major` — 主要版本更新。
 
 ### pyproject.toml
@@ -68,8 +70,8 @@ Poetry 项目同样支持：`[tool.poetry.dependencies]`、
 
 ### 批量更新
 
-从命令面板执行「Update All Packages」，或点状态栏的提示。安全更新与主要版本更新会
-分开处理，主要版本需要额外确认。
+从命令面板执行「Update All Packages」，或点状态栏的提示。无需高风险确认的更新与主要版本更新会
+分开处理，主版本和 `0.x` 次要版本变化需要额外确认。
 
 ## 配置项
 

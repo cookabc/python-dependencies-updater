@@ -2,7 +2,7 @@
     "name": "python-dependencies-updater",
     "displayName": "Python Dependencies Updater",
     "description": "Smart version management for requirements.txt and pyproject.toml with one-click updates and known-vulnerability checks",
-    "version": "1.5.1",
+    "version": "1.6.0",
     "publisher": "cookabc",
     "license": "MIT",
     "icon": "icon.png",
@@ -91,6 +91,14 @@
             {
                 "command": "pyDepsHint._uatVulnerabilityLenses",
                 "title": "UAT: read vulnerability lenses"
+            },
+            {
+                "command": "pyDepsHint.dependencyReport",
+                "title": "%command.dependencyReport%"
+            },
+            {
+                "command": "pyDepsHint.previewAndValidate",
+                "title": "%command.previewAndValidate%"
             }
         ],
         "configuration": {
@@ -125,6 +133,74 @@
                     "type": "boolean",
                     "default": true,
                     "description": "%config.checkVulnerabilities.description%"
+                },
+                "pyDepsHint.strategy": {
+                    "type": "string",
+                    "enum": [
+                        "latest",
+                        "compatible",
+                        "patch"
+                    ],
+                    "default": "latest",
+                    "description": "%config.strategy.description%"
+                },
+                "pyDepsHint.minimumReleaseAgeDays": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 3650,
+                    "default": 0,
+                    "description": "%config.minimumReleaseAgeDays.description%"
+                },
+                "pyDepsHint.ignoredVersions": {
+                    "type": "object",
+                    "default": {},
+                    "additionalProperties": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "description": "%config.ignoredVersions.description%"
+                },
+                "pyDepsHint.deferredPackages": {
+                    "type": "object",
+                    "default": {},
+                    "additionalProperties": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "description": "%config.deferredPackages.description%"
+                },
+                "pyDepsHint.targetPythonVersion": {
+                    "type": "string",
+                    "default": "",
+                    "description": "%config.targetPythonVersion.description%",
+                    "pattern": "^$|^[0-9]+\\.[0-9]+\\.[0-9]+$"
+                },
+                "pyDepsHint.validationCommands": {
+                    "type": "array",
+                    "default": [],
+                    "items": {
+                        "type": "object",
+                        "required": [
+                            "executable",
+                            "args"
+                        ],
+                        "additionalProperties": false,
+                        "properties": {
+                            "executable": {
+                                "type": "string",
+                                "minLength": 1
+                            },
+                            "args": {
+                                "type": "array",
+                                "items": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "description": "%config.validationCommands.description%"
                 }
             }
         },
@@ -172,7 +248,8 @@
         "prepare": "husky",
         "uat": "npm run compile && node esbuild.js && node scripts/uat.mjs",
         "lint:fix": "biome check --write src",
-        "check": "npm run lint && npm test"
+        "check": "npm run check:shared && npm run lint && npm test",
+        "check:shared": "node scripts/sync-shared.mjs"
     },
     "dependencies": {
         "@iarna/toml": "^2.2.5"

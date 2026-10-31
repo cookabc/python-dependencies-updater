@@ -6,7 +6,7 @@ This is a **VS Code Extension** that provides smart version management for Pytho
 
 - **Extension Name**: Python Dependencies Updater
 - **Publisher**: cookabc
-- **Version**: 1.5.1
+- **Version**: 1.6.0
 - **License**: MIT
 - **Repository**: https://github.com/cookabc/python-dependencies-updater
 
@@ -268,3 +268,11 @@ npm test
 3. **Constraint Support**: Handles `==`, `!=`, `>=`, `<=`, `>`, `<`, `~=` operators
 4. **Extras Handling**: Package names with extras (e.g., `uvicorn[standard]`) are properly parsed
 5. **TOML Preservation**: Updates preserve original formatting including quotes and operators
+
+## Deterministic upgrade workflow
+
+Do not add AI/model integrations. Version risk is a heuristic; never call non-major updates safe or imply that tests ran when they did not. See `docs/UPGRADES.md` for supported lockfiles, concrete runtime selection and validation boundaries.
+
+`src/shared/` is authored in the Python extension and vendored into the npm extension. Run `npm run check:shared` when both checkouts are available. Both builds must remain independent; never import runtime code from the sibling checkout.
+
+Validation runs only after explicit action in a trusted workspace, in a temporary copy; it must preserve pre-existing edits and check source/lock snapshots before applying any result. Do not use git reset or stash for validation.

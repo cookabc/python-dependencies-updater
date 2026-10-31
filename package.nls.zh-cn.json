@@ -13,5 +13,13 @@
   "config.cacheTTLMinutes.description": "PyPI 版本数据的缓存 TTL（分钟）",
   "config.supportPyProject.description": "启用或禁用 pyproject.toml 支持",
   "config.registryUrl.description": "PyPI 注册表 URL（用于 Artifactory 或 devpi 等私有镜像）",
-  "config.checkVulnerabilities.description": "对照 OSV.dev 检查精确版本（==）的已知漏洞"
+  "config.checkVulnerabilities.description": "对照 OSV.dev 检查精确版本（==）的已知漏洞",
+  "command.dependencyReport": "显示依赖报告",
+  "command.previewAndValidate": "预览并验证依赖更新",
+  "config.strategy.description": "升级目标：最新版本、同一维护线（compatible，0.x 限制在当前次要版本内），或同一主版本和次要版本（patch）。策略不保证兼容性。",
+  "config.minimumReleaseAgeDays.description": "发布冷静期（天）。0 表示关闭。开启后排除发布时间未知的版本。漏洞修复也遵循此策略，紧急修复时可手动缩短。",
+  "config.ignoredVersions.description": "按包名忽略指定的精确版本，例如 {\"example\": [\"2.0.0\"]}。",
+  "config.deferredPackages.description": "按包名延期到 ISO 8601 时间，例如 {\"example\": \"2027-01-01T00:00:00Z\"}。",
+  "config.targetPythonVersion.description": "目标 Python 的具体版本。留空时读取 .python-version；未找到具体版本时，运行时兼容性为未知。",
+  "config.validationCommands.description": "在临时副本中运行的项目检查，格式为 executable/args 对象，不经过 shell。留空时不运行测试。仅在受信任工作区主动选择预览并验证时执行。"
 }

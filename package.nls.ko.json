@@ -13,5 +13,13 @@
   "config.cacheTTLMinutes.description": "PyPI 버전 데이터의 캐시 TTL (분)",
   "config.supportPyProject.description": "pyproject.toml 지원 활성화 또는 비활성화",
   "config.registryUrl.description": "PyPI 레지스트리 URL (Artifactory 또는 devpi 등 프라이빗 미러용)",
-  "config.checkVulnerabilities.description": "정확한 버전(==)의 알려진 취약점을 OSV.dev에서 확인"
+  "config.checkVulnerabilities.description": "정확한 버전(==)의 알려진 취약점을 OSV.dev에서 확인",
+  "command.dependencyReport": "Show Dependency Report",
+  "command.previewAndValidate": "Preview and Validate Dependency Updates",
+  "config.strategy.description": "Update target: latest release, same maintenance line (compatible; 0.x stays within its minor), or same major.minor (patch). This is not a compatibility guarantee.",
+  "config.minimumReleaseAgeDays.description": "Minimum release age in days. 0 disables the delay. When enabled, releases without timestamps are excluded. Known-vulnerability fixes follow the same policy; reduce the delay explicitly when needed.",
+  "config.ignoredVersions.description": "Exact versions to ignore by package name, e.g. {\"example\": [\"2.0.0\"]}.",
+  "config.deferredPackages.description": "Defer packages until an ISO 8601 date/time, e.g. {\"example\": \"2027-01-01T00:00:00Z\"}.",
+  "config.targetPythonVersion.description": "Concrete target Python version. When empty, read .python-version. If no concrete version is available, runtime compatibility is unknown.",
+  "config.validationCommands.description": "Project checks to run in an isolated copy, as executable/args objects (no shell). Empty means tests are not run. Commands execute only when you choose Preview and Validate in a trusted workspace."
 }

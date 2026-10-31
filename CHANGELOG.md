@@ -1,5 +1,15 @@
 # Change Log
 
+## [1.6.0] - 2026-10-31
+
+- Add maintenance-line/patch policies, cooldowns, exact-version ignores and date-based deferrals.
+- Filter recommendations by the configured project runtime; treat 0.x minor changes as requiring review.
+- Check exact upgrade destinations against OSV and report lookup failures as unknown.
+- Add resolved dependency reports with paths and advisory links.
+- Add native diff previews and isolated package-manager/project-check validation with conflict-aware application.
+- Share deterministic policy, graph, process and validation sources across the independently packaged extensions.
+
+
 All notable changes to the "Python Dependencies Updater" extension will be documented in this file.
 
 ## [Unreleased]
