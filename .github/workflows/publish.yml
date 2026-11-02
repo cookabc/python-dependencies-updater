@@ -9,6 +9,11 @@ permissions:
   contents: write
   id-token: write
 
+# 发布不可并发：同一 tag 只允许一次发布在跑，避免 Marketplace/OpenVSX 重复提交。
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest

@@ -9,12 +9,44 @@ on:
 permissions:
   contents: read
 
+# main 上的每个提交都必须完整跑完，因此只在非 main 分支取消进行中的运行。
 concurrency:
   group: checks-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  # 只改文档的提交不跑代码检查，但必须让必需检查有结论，否则 PR 会一直卡在 pending。
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.decide.outputs.code }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: github.event_name != 'workflow_dispatch'
+        with:
+          persist-credentials: false
+      - uses: dorny/paths-filter@15192bc058cc28a13dbf6cde61f19e18988b7af6 # v3
+        id: filter
+        if: github.event_name != 'workflow_dispatch'
+        with:
+          filters: |
+            code:
+              - '**'
+              - '!**/*.md'
+              - '!docs/**'
+              - '!LICENSE'
+      - id: decide
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "code=${{ steps.filter.outputs.code }}" >> "$GITHUB_OUTPUT"
+          fi
+
   test:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -29,3 +61,25 @@ jobs:
       - run: npm run check
       - name: Package VSIX
         run: npx @vscode/vsce package
+
+  # 唯一可以配置为必需检查的 job：无论代码是否被跳过都给出结论。
+  ci-gate:
+    if: always()
+    needs: [changes, test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify required checks
+        run: |
+          if [ "${{ needs.changes.result }}" != "success" ]; then
+            echo "::error::path filter job did not succeed (${{ needs.changes.result }})"
+            exit 1
+          fi
+          if [ "${{ needs.changes.outputs.code }}" = "false" ]; then
+            echo "Docs-only change: code checks skipped by design."
+            exit 0
+          fi
+          if [ "${{ needs.test.result }}" != "success" ]; then
+            echo "::error::code checks did not pass (${{ needs.test.result }})"
+            exit 1
+          fi
