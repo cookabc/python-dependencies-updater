@@ -30,6 +30,10 @@ jobs:
         id: filter
         if: github.event_name != 'workflow_dispatch'
         with:
+          # 默认是 some（任一规则命中即匹配），那样 '**' 会先命中一切、排除规则失效。
+          # 用 every 让所有规则都必须命中：排除项才能真正把文档类路径剔除。
+          # 任何非文档文件都会命中 '**' 且不被排除，因此不会漏跑代码检查。
+          predicate-quantifier: every
           filters: |
             code:
               - '**'
