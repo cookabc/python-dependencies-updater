@@ -22,10 +22,10 @@ jobs:
     outputs:
       code: ${{ steps.decide.outputs.code }}
     steps:
+      # paths-filter 需要能 fetch 基线 commit；私有仓在禁用凭据后无法认证拉取。
+      # 这个 job 只跑 checkout + paths-filter，不执行仓库代码，因此保留凭据。
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         if: github.event_name != 'workflow_dispatch'
-        with:
-          persist-credentials: false
       - uses: dorny/paths-filter@15192bc058cc28a13dbf6cde61f19e18988b7af6 # v3
         id: filter
         if: github.event_name != 'workflow_dispatch'
